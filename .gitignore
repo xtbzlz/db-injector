@@ -1,0 +1,26 @@
+# ===== DZB Trainer 项目 .gitignore =====
+# 工具链与大型第三方（可重建/独立获取）
+tools/nasm/
+tools/zig-x86_64-windows-0.16.0/
+tools/nasm.zip
+
+# 构建产物
+*.exe
+*.dll
+*.pdb
+*.lib
+*.obj
+*.o
+bridge/bin/
+
+# 日志 / 截图 / 测试产物
+*.log
+shots/
+shots2/
+shots_after/
+
+# 生成数据库
+.codegraph/
+
+# 参考源码 dump（krkrz 上游可独立获取，2016_* 为脚本提取物）
+ref/
