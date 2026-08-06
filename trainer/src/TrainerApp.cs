@@ -4,7 +4,9 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Windows;
@@ -223,6 +225,7 @@ namespace DzbTrainer
         static Brush B(string hex) { return new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex)); }
 
         PipeClient pipe = new PipeClient();
+        AppConfig config = AppConfig.Load();
         DispatcherTimer statusTimer;
         Grid pageHost;
         Dictionary<string, FrameworkElement> pages = new Dictionary<string, FrameworkElement>();
@@ -235,6 +238,8 @@ namespace DzbTrainer
         StackPanel formPanel;
         TextBox previewBox, descBox;
         Button runButton;
+        TextBlock maintDirText;
+        Button debugBtn;
 
         // 数据
         Dictionary<string, string> listData = new Dictionary<string, string>(); // o键 -> "name\tid"
@@ -266,6 +271,27 @@ namespace DzbTrainer
             statusTimer.Start();
             RefreshStatus();
             RefreshStatusInfo();
+
+            // 配置系统：首次启动选择游戏目录，随后自动初始化（部署插件→启动游戏→连接）
+            PipeClient.DebugLog = msg =>
+            {
+                if (config.Debug)
+                {
+                    try { File.AppendAllText(AppConfig.DebugLogPath, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "  [pipe] " + msg + "\r\n"); }
+                    catch { }
+                }
+            };
+            if (string.IsNullOrEmpty(config.GameDir) || !Directory.Exists(config.GameDir))
+            {
+                ChooseGameDir();
+            }
+            else
+            {
+                Log("游戏目录: " + config.GameDir);
+                BackgroundLoad(InitGameFlow);
+            }
+            if (config.Debug)
+                Log("调试模式已开启（日志将写入 " + AppConfig.DebugLogPath + "）");
         }
 
         // ============ 通用帮助 ============
@@ -486,6 +512,11 @@ namespace DzbTrainer
         // ============ 日志/执行 ============
         void Log(string msg)
         {
+            if (config.Debug)
+            {
+                try { File.AppendAllText(AppConfig.DebugLogPath, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "  " + msg + "\r\n"); }
+                catch { }
+            }
             Dispatcher.Invoke(new Action(() =>
             {
                 logBox.Items.Add("[" + DateTime.Now.ToString("HH:mm:ss") + "] " + msg);
@@ -505,16 +536,21 @@ namespace DzbTrainer
             t.Start();
         }
 
+        int statusFailStreak = 0;
+
         void RefreshStatus()
         {
             // 后台执行：游戏未启动时 Ping 可能耗时（连接失败/重试），不能阻塞 UI 线程
             BackgroundLoad(() =>
             {
                 bool ok = pipe.Ping() == "PONG";
+                statusFailStreak = ok ? 0 : statusFailStreak + 1;
+                // 防抖：连续 2 次失败才显示未连接，避免游戏加载期单次超时误报
+                bool showDisconnected = !ok && statusFailStreak >= 2;
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    statusDot.Foreground = ok ? OkGreen : ErrRed;
-                    statusText.Text = ok ? "已连接" : "未连接";
+                    statusDot.Foreground = ok || !showDisconnected ? OkGreen : ErrRed;
+                    statusText.Text = (ok || !showDisconnected) ? "已连接" : "未连接";
                 }));
             });
         }
@@ -570,12 +606,138 @@ namespace DzbTrainer
         {
             try
             {
-                var baseDir = @"C:\Users\1\Desktop\CR\ダンジョン＆ブライド";
-                if (!System.IO.Directory.Exists(baseDir)) { Log("找不到游戏目录: " + baseDir); return; }
-                Process.Start(baseDir + @"\game64.exe");
+                if (string.IsNullOrEmpty(config.GameDir) || !Directory.Exists(config.GameDir))
+                {
+                    Log("游戏目录无效，请先选择游戏目录");
+                    ChooseGameDir();
+                    return;
+                }
+                string exe = GameExePath();
+                if (exe == null) { Log("游戏目录中没有 game64.exe/game.exe: " + config.GameDir); return; }
+                Process.Start(exe);
                 Log("已启动游戏");
             }
             catch (Exception ex) { Log("启动失败: " + ex.Message); }
+        }
+
+        string GameExePath()
+        {
+            string d = config.GameDir;
+            if (string.IsNullOrEmpty(d)) return null;
+            if (File.Exists(Path.Combine(d, "game64.exe"))) return Path.Combine(d, "game64.exe");
+            if (File.Exists(Path.Combine(d, "game.exe"))) return Path.Combine(d, "game.exe");
+            return null;
+        }
+
+        // ---- 配置向导与初始化流程 ----
+        void ChooseGameDir()
+        {
+            using (var ofd = new System.Windows.Forms.OpenFileDialog())
+            {
+                ofd.Title = "请选择游戏根目录下的 game64.exe（自动检测并初始化连接）";
+                ofd.Filter = "游戏主程序|game64.exe;game.exe|所有文件|*.*";
+                ofd.CheckFileExists = true;
+                if (!string.IsNullOrEmpty(config.GameDir) && Directory.Exists(config.GameDir))
+                    ofd.InitialDirectory = config.GameDir;
+                if (ofd.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
+                string dir = Path.GetDirectoryName(ofd.FileName);
+                if (string.IsNullOrEmpty(dir)) return;
+                config.GameDir = dir;
+                config.Save();
+                Log("游戏目录已设置: " + config.GameDir);
+                BackgroundLoad(InitGameFlow);
+            }
+        }
+
+        // 初始化流程：校验目录 → 部署插件 → 自动启动游戏 → 等待连接
+        void InitGameFlow()
+        {
+            try
+            {
+                string dir = config.GameDir;
+                if (string.IsNullOrEmpty(dir) || !Directory.Exists(dir)) { Log("游戏目录无效: " + dir); return; }
+                string exe = GameExePath();
+                if (exe == null) { Log("目录中没有 game64.exe/game.exe，请检查游戏目录: " + dir); return; }
+
+                // 1. 部署插件（内嵌资源释放为 plugin\tb_bridge.tpm）
+                string pluginDir = Path.Combine(dir, "plugin");
+                Directory.CreateDirectory(pluginDir);
+                string target = Path.Combine(pluginDir, "tb_bridge.tpm");
+                DeployPlugin(target);
+
+                // 2. 自动启动游戏（如未运行）
+                if (config.AutoLaunchGame && Process.GetProcessesByName("game64").Length == 0
+                    && Process.GetProcessesByName("game").Length == 0)
+                {
+                    Log("启动游戏…");
+                    Process.Start(exe);
+                }
+
+                // 3. 等待管道连接（最长 180s，游戏冷启动与插件加载可能较慢）
+                Log("等待游戏连接…");
+                for (int i = 0; i < 180; i++)
+                {
+                    if (pipe.Ping() == "PONG")
+                    {
+                        Log("连接成功");
+                        RefreshStatus();
+                        RefreshStatusInfo();
+                        Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            statusText.Text = "已连接";
+                            statusDot.Foreground = OkGreen;
+                        }));
+                        // 连接就绪后加载注册表（冷启动时最初的 LoadRegistry 可能因游戏未就绪失败）
+                        try { LoadRegistry(); Log("注册表已加载(初始化)"); }
+                        catch (Exception lr) { Log("注册表加载失败: " + lr.Message); }
+                        return;
+                    }
+                    Thread.Sleep(1000);
+                }
+                Log("连接超时：请确认游戏已启动且插件已加载（重启游戏可重新加载插件）");
+            }
+            catch (Exception ex) { Log("初始化失败: " + ex.Message); }
+        }
+
+        // 部署插件：从内嵌资源（或外部 dll 回退）释放到游戏 plugin\ 目录，大小比对增量更新
+        void DeployPlugin(string target)
+        {
+            byte[] data = null;
+            try
+            {
+                var asm = Assembly.GetExecutingAssembly();
+                string resName = asm.GetManifestResourceNames()
+                    .FirstOrDefault(n => n.EndsWith("tb_bridge.dll", StringComparison.OrdinalIgnoreCase)
+                                      || n.EndsWith("tb_bridge.tpm", StringComparison.OrdinalIgnoreCase));
+                if (resName != null)
+                {
+                    using (var s = asm.GetManifestResourceStream(resName))
+                    {
+                        if (s != null)
+                        {
+                            using (var ms = new MemoryStream()) { s.CopyTo(ms); data = ms.ToArray(); }
+                        }
+                    }
+                }
+            }
+            catch { }
+            if (data == null || data.Length == 0)
+            {
+                // 回退：外部源（开发模式，bridge/bin/tb_bridge.dll）
+                string ext = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"..\..\bridge\bin\tb_bridge.dll"));
+                if (File.Exists(ext)) data = File.ReadAllBytes(ext);
+            }
+            if (data == null || data.Length == 0) { Log("插件资源缺失（内置与外部均未找到）"); return; }
+
+            bool need = !File.Exists(target) || new FileInfo(target).Length != data.Length;
+            if (need)
+            {
+                bool gameRunning = Process.GetProcessesByName("game64").Length > 0 || Process.GetProcessesByName("game").Length > 0;
+                File.WriteAllBytes(target, data);
+                Log("插件已部署: plugin\\tb_bridge.tpm（" + data.Length + " 字节）");
+                if (gameRunning)
+                    Log("提示：游戏正在运行，重启游戏后新插件生效");
+            }
         }
 
         // ============ 数据加载 ============
@@ -1190,6 +1352,8 @@ namespace DzbTrainer
             left.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
             var c1 = Card();
             c1.Children.Add(Lbl("维护", false, 14));
+            maintDirText = Lbl("游戏目录: " + (config.GameDir.Length > 0 ? config.GameDir : "（未设置，点击下方按钮选择）"), true, 11);
+            c1.Children.Add(maintDirText);
             var row = new WrapPanel();
             var b1 = FlatButton("启动游戏", LaunchGame);
             b1.Width = 170;
@@ -1200,6 +1364,16 @@ namespace DzbTrainer
             var b3 = FlatButton("清空全员背包", ClearAllBags);
             b3.Width = 170;
             row.Children.Add(b3);
+            var b4 = FlatButton("修改游戏目录", ChooseGameDir);
+            b4.Width = 170;
+            row.Children.Add(b4);
+            var b5 = FlatButton("调试模式: " + (config.Debug ? "开" : "关"), ToggleDebug);
+            b5.Width = 170;
+            debugBtn = b5;
+            row.Children.Add(b5);
+            var b6 = FlatButton("查看插件日志", ShowPluginLog);
+            b6.Width = 170;
+            row.Children.Add(b6);
             c1.Children.Add(row);
             left.Children.Add(c1);
             var c2 = Card();
@@ -1237,6 +1411,34 @@ namespace DzbTrainer
             Grid.SetColumn(right, 1);
             grid.Children.Add(right);
             return sv;
+        }
+
+        // 调试模式开关：写入配置并持久化；调试时 Log 会双写到 debug.log
+        void ToggleDebug()
+        {
+            config.Debug = !config.Debug;
+            config.Save();
+            if (debugBtn != null) debugBtn.Content = "调试模式: " + (config.Debug ? "开" : "关");
+            Log("调试模式已" + (config.Debug ? "开启" : "关闭") + (config.Debug ? "（日志写入 " + AppConfig.DebugLogPath + "）" : ""));
+        }
+
+        // 查看插件日志：读游戏目录 tbc_bridge.log 显示到日志区
+        void ShowPluginLog()
+        {
+            string dir = config.GameDir;
+            if (string.IsNullOrEmpty(dir) || !Directory.Exists(dir)) { Log("游戏目录无效，无法读取插件日志"); return; }
+            string p = Path.Combine(dir, "tbc_bridge.log");
+            if (!File.Exists(p)) { Log("插件日志不存在: " + p + "（游戏未启动或插件未加载）"); return; }
+            BackgroundLoad(() =>
+            {
+                try
+                {
+                    foreach (var line in File.ReadAllLines(p))
+                        Log("插件: " + line);
+                    Log("--- 插件日志结束（共 " + File.ReadAllLines(p).Length + " 行）---");
+                }
+                catch (Exception ex) { Log("读取插件日志失败: " + ex.Message); }
+            });
         }
 
         void ClearAllBags()

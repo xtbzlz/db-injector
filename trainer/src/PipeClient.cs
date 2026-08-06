@@ -12,10 +12,14 @@ namespace DzbTrainer
     {
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         static extern IntPtr CreateFileW(string name, uint access, uint share, IntPtr sa, uint disp, uint flags, IntPtr tpl);
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        static extern bool WaitNamedPipe(string name, int timeout);
         [DllImport("kernel32.dll", SetLastError = true)]
         static extern bool ReadFile(IntPtr h, byte[] buf, uint n, out uint read, IntPtr ov);
         [DllImport("kernel32.dll", SetLastError = true)]
         static extern bool WriteFile(IntPtr h, byte[] buf, uint n, out uint written, IntPtr ov);
+        [DllImport("kernel32.dll", SetLastError = true)]
+        static extern bool PeekNamedPipe(IntPtr h, byte[] buf, uint n, out uint read, out uint avail, out uint msgLeft);
         [DllImport("kernel32.dll")]
         static extern bool CloseHandle(IntPtr h);
 
@@ -26,13 +30,28 @@ namespace DzbTrainer
         IntPtr hPipe = IntPtr.Zero;
         readonly object sync = new object();
 
+        // 调试回调：连接失败/重试明细（由 Trainer 在调试模式时挂接，写入 debug.log）
+        public static Action<string> DebugLog;
+
+        static void Dbg(string msg)
+        {
+            if (DebugLog != null) { try { DebugLog(msg); } catch { } }
+        }
+
         public bool Connected { get { return hPipe.ToInt64() != 0 && hPipe.ToInt64() != -1; } }
 
         public bool Connect()
         {
-            // 管道不存在时 CreateFileW 立即失败；这里只保留少量重试以覆盖
-            // 游戏/插件刚启动瞬间的窗口期，避免长时间阻塞调用方线程
-            for (int attempt = 0; attempt < 6; attempt++)
+            // 先 WaitNamedPipe 预检避免 CreateFileW 在实例全忙时无限阻塞；
+            // 插件在 Disconnect→Create 间隙会短暂无实例，故预检加重试覆盖
+            bool waited = false;
+            for (int w = 0; w < 5 && !waited; w++)
+            {
+                if (WaitNamedPipe(@"\\.\pipe\tbc_bridge", 500)) waited = true;
+                else Thread.Sleep(50);
+            }
+            if (!waited) return false;
+            for (int attempt = 0; attempt < 3; attempt++)
             {
                 IntPtr h = CreateFileW(@"\\.\pipe\tbc_bridge", GENERIC_READ | GENERIC_WRITE,
                     FILE_SHARE_READ | FILE_SHARE_WRITE, IntPtr.Zero, OPEN_EXISTING, 0, IntPtr.Zero);
@@ -41,6 +60,8 @@ namespace DzbTrainer
                     hPipe = h;
                     return true;
                 }
+                int err = Marshal.GetLastWin32Error();
+                if (attempt == 0) Dbg("pipe connect fail err=" + err + " (game not running or plugin not loaded)");
                 Thread.Sleep(50);
             }
             return false;
@@ -173,9 +194,17 @@ namespace DzbTrainer
         bool ReadExact(byte[] b, int n)
         {
             int got = 0;
+            var sw = System.Diagnostics.Stopwatch.StartNew();
             while (got < n)
             {
-                uint r;
+                uint r, avail, m;
+                if (!PeekNamedPipe(hPipe, null, 0, out r, out avail, out m)) return false;
+                if (avail == 0)
+                {
+                    if (sw.ElapsedMilliseconds > ReadTimeoutMs) return false;
+                    Thread.Sleep(20);
+                    continue;
+                }
                 if (!ReadFile(hPipe, b, (uint)(n - got), out r, IntPtr.Zero) || r == 0)
                     return false;
                 got += (int)r;
@@ -187,14 +216,24 @@ namespace DzbTrainer
         {
             var sb = new StringBuilder();
             byte[] one = new byte[1];
+            var sw = System.Diagnostics.Stopwatch.StartNew();
             while (true)
             {
-                uint r;
+                uint r, avail, m;
+                if (!PeekNamedPipe(hPipe, null, 0, out r, out avail, out m)) break;
+                if (avail == 0)
+                {
+                    if (sw.ElapsedMilliseconds > ReadTimeoutMs) { Dbg("read timeout"); break; }
+                    Thread.Sleep(20);
+                    continue;
+                }
                 if (!ReadFile(hPipe, one, 1, out r, IntPtr.Zero) || r == 0) break;
                 if (one[0] == (byte)'\n') break;
                 sb.Append((char)one[0]);
             }
             return sb.ToString();
         }
+
+        const int ReadTimeoutMs = 5000;
     }
 }

@@ -26,6 +26,24 @@ function Write-Test($name, $ok, $detail) {
 $crashBefore = 0
 if (Test-Path $crashLog) { $crashBefore = (Get-Content $crashLog).Count }
 
+# ---- 预启动游戏（冷启动慢，先就绪再测 Trainer；以 game.items.count 可返回为就绪标志，轮询最长 120s） ----
+$gameDir2 = "C:\Users\1\Desktop\CR\ダンジョン＆ブライド"
+if (-not (Get-Process game64 -ErrorAction SilentlyContinue)) {
+    Start-Process (Join-Path $gameDir2 "game64.exe")
+    Write-Output "game launched, waiting for ready..."
+    $tbc = "C:\Users\1\Desktop\CR\DXCXN\tools\TbcCli.exe"
+    $ready = $false
+    for ($i = 0; $i -lt 240 -and -not $ready; $i++) {
+        Start-Sleep -Milliseconds 500
+        $out = & $tbc "game.items.count" 2>$null | Select-Object -Last 1
+        if ($out -match "= \d+") { $ready = $true }
+    }
+    Write-Output "game ready: $ready (waited $([math]::Round($i * 0.5))s)"
+    if (-not $ready) { Write-Output "game NOT ready - connection may fail" }
+} else {
+    Write-Output "game already running"
+}
+
 # start trainer
 Get-Process Trainer -ErrorAction SilentlyContinue | ForEach-Object { $_.Kill() }
 Start-Sleep -Milliseconds 800
@@ -101,9 +119,9 @@ Write-Test "分组名称完整" ($missing.Count -eq 0) "missing=$($missing -join
 $cmdItems = $lists[1].FindAll([System.Windows.Automation.TreeScope]::Children, [System.Windows.Automation.Condition]::TrueCondition)
 Write-Test "默认组指令已填充" ($cmdItems.Count -ge 4) "count=$($cmdItems.Count)"
 
-# 注册表数据加载（等待日志）
+# 注册表数据加载（等待日志；游戏已预启动，Trainer 连接后秒级完成，等待放宽到 40s）
 $loaded = $false
-for ($i = 0; $i -lt 20; $i++) {
+for ($i = 0; $i -lt 80; $i++) {
     Start-Sleep -Milliseconds 500
     foreach ($l in (Get-LogLines $win)) { if ($l -match "已加载注册表") { $loaded = $true } }
     if ($loaded) { break }
