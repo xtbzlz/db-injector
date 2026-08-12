@@ -26,6 +26,7 @@ namespace DzbTrainer
         const uint GENERIC_READ = 0x80000000, GENERIC_WRITE = 0x40000000;
         const uint FILE_SHARE_READ = 1, FILE_SHARE_WRITE = 2;
         const uint OPEN_EXISTING = 3;
+        const string PipeName = @"\\.\pipe\tbc_bridge"; // 管道名集中定义（协议常量）
 
         IntPtr hPipe = IntPtr.Zero;
         readonly object sync = new object();
@@ -47,13 +48,13 @@ namespace DzbTrainer
             bool waited = false;
             for (int w = 0; w < 5 && !waited; w++)
             {
-                if (WaitNamedPipe(@"\\.\pipe\tbc_bridge", 500)) waited = true;
+                if (WaitNamedPipe(PipeName, 500)) waited = true;
                 else Thread.Sleep(50);
             }
             if (!waited) return false;
             for (int attempt = 0; attempt < 3; attempt++)
             {
-                IntPtr h = CreateFileW(@"\\.\pipe\tbc_bridge", GENERIC_READ | GENERIC_WRITE,
+                IntPtr h = CreateFileW(PipeName, GENERIC_READ | GENERIC_WRITE,
                     FILE_SHARE_READ | FILE_SHARE_WRITE, IntPtr.Zero, OPEN_EXISTING, 0, IntPtr.Zero);
                 if (h.ToInt64() != -1)
                 {
@@ -111,30 +112,6 @@ namespace DzbTrainer
                     {
                         Close();
                     }
-                }
-                return "ERR: connection lost";
-            }
-        }
-
-        public string EvalScript(string code)
-        {
-            lock (sync)
-            {
-                for (int attempt = 0; attempt < 3; attempt++)
-                {
-                    if (!Connect()) return "ERR: cannot connect";
-                    try
-                    {
-                        string r = EvalRaw("EVALS\n", code);
-                        Close();
-                        if (r.StartsWith("ERR: write failed") || r.StartsWith("ERR: pipe closed") || r.StartsWith("ERR: cannot open"))
-                        {
-                            Close();
-                            continue;
-                        }
-                        return r;
-                    }
-                    catch { Close(); }
                 }
                 return "ERR: connection lost";
             }

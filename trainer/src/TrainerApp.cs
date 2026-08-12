@@ -26,10 +26,17 @@ namespace DzbTrainer
             app.DispatcherUnhandledException += (s, e) =>
             {
                 CrashLog("Dispatcher", e.Exception);
+                // 记录后向用户提示再退出，而非静默崩溃
+                try
+                {
+                    System.Windows.MessageBox.Show(
+                        "程序发生未处理异常，已写入 crash.log。\n\n" + e.Exception.Message,
+                        "D&B 修改器 - 错误", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                }
+                catch { }
                 e.Handled = false;
             };
-            app.Run(new MainWindow());
-            return 0;
+            return app.Run(new MainWindow());
         }
 
         static void CrashLog(string where, object ex)
@@ -81,9 +88,9 @@ namespace DzbTrainer
         static readonly string[] Guys = { "theo", "max", "linus", "blue", "alex" };
         static readonly string[] Strips = { "通常", "下着", "パンツ", "裸", "汗だく", "妊娠", "ボテ腹" };
         static readonly string[] StripsSub = { "通常", "裸", "汗だく" };
-        static readonly string[] Statuses = { "麻痺", "毒", "猛毒", "睡眠", "混乱", "魅了", "呪い", "石化", "恐怖", "沉默", "衰弱", "疫病" };
-        static readonly string[] Skills = { "偵察", "反撃", "格闘", "聖拳", "回避", "鑑定", "修理", "探索", "警戒", "習得", "契約", "憑依術", "浄化", "全員かばう", "擊倒" };
-        static readonly string[] Mercs = { "ブレイズマン", "ソードダンサー", "チャンピオン", "エンジェルナイト", "アコライト", "ハイプリースト", "ミスティック", "メイガス", "スナイパー", "マスターアーチャー" };
+        public static readonly string[] Statuses = { "麻痺", "毒", "猛毒", "睡眠", "混乱", "魅了", "呪い", "石化", "恐怖", "沉默", "衰弱", "疫病" };
+        public static readonly string[] Skills = { "偵察", "反撃", "格闘", "聖拳", "回避", "鑑定", "修理", "探索", "警戒", "習得", "契約", "憑依術", "浄化", "全員かばう", "擊倒" };
+        public static readonly string[] Mercs = { "ブレイズマン", "ソードダンサー", "チャンピオン", "エンジェルナイト", "アコライト", "ハイプリースト", "ミスティック", "メイガス", "スナイパー", "マスターアーチャー" };
         // 可操控主力（有背包，party 出入队有意义）
         static readonly string[] PartyKeys = { "テオ", "マックス", "リーゼル" };
         // 支援角色（GuestObject，无背包，guest.entry 有效）
@@ -203,7 +210,6 @@ namespace DzbTrainer
 
         // 运行时数据源（由 MainWindow 填充）
         public static Dictionary<string, string> CharaNames = new Dictionary<string, string>(); // index -> name
-        public static Dictionary<string, string> MagicNames = new Dictionary<string, string>(); // 系列+index -> name
     }
 
     // ============================================================
@@ -241,24 +247,17 @@ namespace DzbTrainer
         TextBlock maintDirText;
         Button debugBtn;
 
-        // 数据
-        Dictionary<string, string> listData = new Dictionary<string, string>(); // o键 -> "name\tid"
+        // 数据（LoadRegistry 在后台构建快照后一次性交换引用，UI 线程读取无中间态）
         Dictionary<string, string> listNames = new Dictionary<string, string>(); // o键 -> name
-        Dictionary<string, string> listIds = new Dictionary<string, string>();   // o键 -> id
         List<KeyValuePair<int, string>> itemList = new List<KeyValuePair<int, string>>(); // id -> 显示名
-        Dictionary<string, string> itemIdToKey = new Dictionary<string, string>(); // id -> o键
-        Dictionary<string, string> itemKeyToId = new Dictionary<string, string>(); // o键 -> id
         Dictionary<string, string> itemJpName = new Dictionary<string, string>();   // id -> 日文标准名(wiki优先,o键兜底)
-        Dictionary<string, string> charaJpName = new Dictionary<string, string>();  // chara索引 -> o键(日文)
         Dictionary<string, string> oKeyDisplay = new Dictionary<string, string>();  // o键 -> displayName(中文)
-        List<string> oRoleKeys = new List<string>();
-        string[] magicSeries = { "mmagic", "pmagic", "amagic", "smagic" };
-        Dictionary<string, string> magicDisplay = new Dictionary<string, string>(); // "系列|名" -> o键
+        List<string> oKeys = new List<string>();
+        int loadingRegistry = 0; // LoadRegistry 防重入标志（Interlocked）
 
         CmdDef selectedCmd;
         Dictionary<string, Control> paramControls = new Dictionary<string, Control>();
-        Dictionary<string, TextBox> searchBoxes = new Dictionary<string, TextBox>();
-        List<string> oKeys = new List<string>();
+        static readonly object FileLogLock = new object(); // debug.log 并发写保护
 
         public MainWindow()
         {
@@ -514,7 +513,7 @@ namespace DzbTrainer
         {
             if (config.Debug)
             {
-                try { File.AppendAllText(AppConfig.DebugLogPath, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "  " + msg + "\r\n"); }
+                try { lock (FileLogLock) File.AppendAllText(AppConfig.DebugLogPath, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "  " + msg + "\r\n"); }
                 catch { }
             }
             Dispatcher.Invoke(new Action(() =>
@@ -536,7 +535,7 @@ namespace DzbTrainer
             t.Start();
         }
 
-        int statusFailStreak = 0;
+        int statusFailStreak = 0; // 仅经 Interlocked 访问（多后台线程并发）
 
         void RefreshStatus()
         {
@@ -544,9 +543,9 @@ namespace DzbTrainer
             BackgroundLoad(() =>
             {
                 bool ok = pipe.Ping() == "PONG";
-                statusFailStreak = ok ? 0 : statusFailStreak + 1;
                 // 防抖：连续 2 次失败才显示未连接，避免游戏加载期单次超时误报
-                bool showDisconnected = !ok && statusFailStreak >= 2;
+                int streak = ok ? 0 : Interlocked.Increment(ref statusFailStreak);
+                bool showDisconnected = !ok && streak >= 2;
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
                     statusDot.Foreground = ok || !showDisconnected ? OkGreen : ErrRed;
@@ -592,8 +591,6 @@ namespace DzbTrainer
             { "警戒", "警戒" }, { "習得", "习得" }, { "契約", "契约" }, { "憑依術", "凭依术" },
             { "浄化", "净化" }, { "全員かばう", "全员庇护" }, { "擊倒", "击倒" }, { "かばう", "庇护" },
         };
-
-        static readonly string[] MercKeys = { "ブレイズマン", "ソードダンサー", "チャンピオン", "エンジェルナイト", "アコライト", "ハイプリースト", "ミスティック", "メイガス", "スナイパー", "マスターアーチャー" };
 
         long Parse(string s)
         {
@@ -743,38 +740,36 @@ namespace DzbTrainer
         // ============ 数据加载 ============
         void LoadRegistry()
         {
-            // LIST：o 注册表（键=日文标识符, name=运行时名, id=物品ID）
+            // 防重入：3 个入口（指令页初始/InitGameFlow 连接后/维护页按钮）可能并发
+            if (Interlocked.CompareExchange(ref loadingRegistry, 1, 0) != 0) return;
+            try { LoadRegistryInner(); }
+            finally { Interlocked.Exchange(ref loadingRegistry, 0); }
+        }
+
+        void LoadRegistryInner()
+        {
+            // LIST：o 注册表（键=日文标识符, name=运行时名）
             var raw = pipe.List();
             if (raw.StartsWith("ERR")) throw new Exception(raw.Substring(4));
-            listNames.Clear();
-            listIds.Clear();
-            itemList.Clear();
-            itemIdToKey.Clear();
-            itemKeyToId.Clear();
-            itemJpName.Clear();
-            charaJpName.Clear();
-            oKeys.Clear();
+
+            // 全部构建到本地快照，完成后一次性交换引用（与 UI 线程读取无竞态）
+            var newNames = new Dictionary<string, string>();
+            var newItems = new List<KeyValuePair<int, string>>();
+            var newItemJp = new Dictionary<string, string>();
+            var newKeyDisplay = new Dictionary<string, string>();
+            var newOKeys = new List<string>();
+            var newCharaNames = new Dictionary<string, string>();
+
             foreach (var line in raw.Split('\n'))
             {
                 var t = line.Split('\t');
                 if (t.Length < 3 || t[0].Length == 0) continue;
-                string key = t[0], nm = t[1], id = t[2];
-                oKeys.Add(key);
-                if (nm.Length > 0) listNames[key] = nm;
-                if (id.Length > 0)
-                {
-                    listIds[key] = id;
-                    int iv;
-                    if (int.TryParse(id, out iv))
-                    {
-                        if (!itemIdToKey.ContainsKey(id)) itemIdToKey[id] = key;
-                        if (!itemKeyToId.ContainsKey(key)) itemKeyToId[key] = id;
-                    }
-                }
+                string key = t[0], nm = t[1];
+                newOKeys.Add(key);
+                if (nm.Length > 0) newNames[key] = nm;
             }
-            // 物品源：game.items 数组（569 个，索引=id）——LIST 的带 id 对象含地图/事件等非物品
+            // 物品源：game.items 数组（索引=id）——LIST 的带 id 对象含地图/事件等非物品
             // 双语：中文=运行时 displayName（汉化版），日文=运行时 name
-            itemList.Clear();
             {
                 string itemsRaw = EvalSafe("(function(){ var a=game.items; var r=''; for(var i=0;i<a.count;i++){ r += i + '\\t' + a[i].name + '\\t' + a[i].displayName + '\\n'; } return r; })()");
                 foreach (var line in itemsRaw.Split('\n'))
@@ -787,13 +782,12 @@ namespace DzbTrainer
                     string cn = t.Length >= 3 ? t[2].Trim() : "";
                     if (cn.Length == 0) { string mc; if (!CnItemMap.Map.TryGetValue(nm, out mc)) mc = nm; cn = mc; }
                     if (nm.Length == 0) nm = "?";
-                    itemJpName[id.ToString()] = nm;
-                    itemList.Add(new KeyValuePair<int, string>(id, FormatBi(cn, nm)));
+                    newItemJp[id.ToString()] = nm;
+                    newItems.Add(new KeyValuePair<int, string>(id, FormatBi(cn, nm)));
                 }
-                itemList.Sort((a, b) => a.Key.CompareTo(b.Key));
+                newItems.Sort((a, b) => a.Key.CompareTo(b.Key));
             }
             // 角色名（双语：运行时名 + o键日文名）
-            CmdLib.CharaNames.Clear();
             {
                 string names = EvalSafe("(function(){ var r=''; for(var i=0;i<game.chara.count;i++){ r += i + '\\t' + game.chara[i].name + '\\n'; } return r; })()");
                 foreach (var line in names.Split('\n'))
@@ -808,40 +802,21 @@ namespace DzbTrainer
                     if (CharaMap.Jp.TryGetValue(nm, out jpFromMap)) jp = jpFromMap;
                     if (jp.Length == 0)
                         foreach (var ok in CmdLib.ORoleKeys)
-                            if (listNames.ContainsKey(ok) && listNames[ok] == nm) { jp = ok; break; }
+                            if (newNames.ContainsKey(ok) && newNames[ok] == nm) { jp = ok; break; }
                     if (jp.Length == 0)
-                        foreach (var kv in listNames)
+                        foreach (var kv in newNames)
                             if (kv.Value == nm) { jp = kv.Key; break; }
-                    charaJpName[idx] = jp;
-                    CmdLib.CharaNames[idx] = FormatBi(nm, jp);
-                }
-            }
-            // 魔法名（4 系列，中文=displayName，日文=name）；值=cn\tjp
-            CmdLib.MagicNames.Clear();
-            magicDisplay.Clear();
-            for (int s = 0; s < magicSeries.Length; s++)
-            {
-                string mn = EvalSafe("(function(){ var a=game." + magicSeries[s] + "; var r=''; for(var i=0;i<a.count;i++){ r += (i>0?',':'') + a[i].name + '\\t' + a[i].displayName; } return r; })()");
-                foreach (var pair in mn.Split(','))
-                {
-                    var p2 = pair.Split('\t');
-                    if (p2.Length < 1) continue;
-                    string jp = p2[0].Trim();
-                    string cn = p2.Length >= 2 ? p2[1].Trim() : jp;
-                    if (jp.Length == 0) continue;
-                    if (cn.Length == 0) cn = jp;
-                    magicDisplay[magicSeries[s] + "|" + jp] = cn + "\t" + jp;
+                    newCharaNames[idx] = FormatBi(nm, jp);
                 }
             }
             // 技能/状态/佣兵/角色 o 键的 displayName（中文），用于下拉「中文（日文）」
-            oKeyDisplay.Clear();
             {
                 var probe = new List<string>();
                 probe.AddRange(CmdLib.ORoleKeys);
                 probe.AddRange(CmdLib.GuestKeys);
                 probe.AddRange(SkillsFromRegistry());
                 probe.AddRange(StatusesFromRegistry());
-                probe.AddRange(MercKeys);
+                probe.AddRange(CmdLib.Mercs);
                 string pk = string.Join(",", probe.ToArray());
                 string dn = EvalSafe("(function(){ var ks=['" + pk.Replace(",", "','") + "']; var r=''; for(var i=0;i<ks.length;i++){ try { r += ks[i] + '\\t' + o[ks[i]].displayName + '\\n'; } catch(e){} } return r; })()");
                 foreach (var line in dn.Split('\n'))
@@ -849,9 +824,18 @@ namespace DzbTrainer
                     var t = line.Split('\t');
                     if (t.Length < 2) continue;
                     string k = t[0].Trim(), v = t[1].Trim();
-                    if (k.Length > 0) oKeyDisplay[k] = v;
+                    if (k.Length > 0) newKeyDisplay[k] = v;
                 }
             }
+
+            // 一次性交换引用（原子），UI 线程读取始终为完整快照
+            listNames = newNames;
+            itemList = newItems;
+            itemJpName = newItemJp;
+            oKeyDisplay = newKeyDisplay;
+            oKeys = newOKeys;
+            CmdLib.CharaNames = newCharaNames;
+
             Dispatcher.Invoke(new Action(() =>
             {
                 statusInfo.Text = "注册表 " + oKeys.Count + " 项 / 物品 " + itemList.Count + " / 角色 " + CmdLib.CharaNames.Count;
@@ -962,7 +946,6 @@ namespace DzbTrainer
         {
             formPanel.Children.Clear();
             paramControls.Clear();
-            searchBoxes.Clear();
             if (cmd == null) return;
             formPanel.Children.Add(Lbl(cmd.Name, false, 15));
             formPanel.Children.Add(Lbl(cmd.Template, true, 12));
@@ -1069,7 +1052,6 @@ namespace DzbTrainer
         ComboBox MakeOCombo(string[] fixedOpts, string defKey)
         {
             var cb = MakeCombo(240);
-            var seen = new HashSet<string>();
             var keys = fixedOpts != null && fixedOpts.Length > 0 ? fixedOpts : CmdLib.ORoleKeys;
             foreach (var k in keys)
             {
@@ -1077,7 +1059,6 @@ namespace DzbTrainer
                 string zh = oKeyDisplay.ContainsKey(k) ? oKeyDisplay[k]
                         : (nm.Length > 0 && nm != k ? nm : k);
                 cb.Items.Add(new ComboItem(FormatBi(zh, k), k));
-                seen.Add(k);
             }
             int sel = 0;
             for (int i = 0; i < keys.Length; i++)
@@ -1185,16 +1166,13 @@ namespace DzbTrainer
 
         string[] SkillsFromRegistry()
         {
-            var fixedSkills = new string[] { "偵察", "反撃", "格闘", "聖拳", "回避", "鑑定", "修理", "探索", "警戒", "習得", "契約", "憑依術", "浄化", "全員かばう", "擊倒" };
-            var res = new List<string>();
-            foreach (var k in fixedSkills) if (oKeys.Contains(k) || true) res.Add(k);
-            return res.ToArray();
+            // 单一数据源；displayName 探测对不存在的键有 try/catch 保护，始终返回全量
+            return CmdLib.Skills;
         }
 
         string[] StatusesFromRegistry()
         {
-            var fixedSt = new string[] { "麻痺", "毒", "猛毒", "睡眠", "混乱", "魅了", "呪い", "石化", "恐怖", "沉默", "衰弱", "疫病" };
-            return fixedSt;
+            return CmdLib.Statuses;
         }
 
         // ---- 拼接 ----
@@ -1283,11 +1261,6 @@ namespace DzbTrainer
         TextBox consoleInput, consoleHistory;
 
         FrameworkElement BuildConsolePage()
-        {
-            return BuildConsolePageInner();
-        }
-
-        FrameworkElement BuildConsolePageInner()
         {
             var grid = new Grid { Margin = new Thickness(12) };
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
