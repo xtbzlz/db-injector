@@ -80,7 +80,7 @@ namespace DzbTrainer
     // ============================================================
     public static class CmdLib
     {
-        static ParamSpec P(string key, string label, string type, string def = "", string[] opts = null, string hint = "")
+        static ParamSpec MakeParam(string key, string label, string type, string def = "", string[] opts = null, string hint = "")
         {
             return new ParamSpec { Key = key, Label = label, Type = type, Def = def, Options = opts, Hint = hint };
         }
@@ -100,105 +100,105 @@ namespace DzbTrainer
 
         public static CmdDef[] All = new CmdDef[] {
             // ---- 等级经验 ----
-            Cmd("等级经验", "升级到指定等级", "{chara}.levelUp({num})",
-                P("chara","角色","chara"), P("num","目标等级","num","99")),
-            Cmd("等级经验", "经验拉满升至最高(绿字时)", "{chara}.levelUpToTheLast()",
-                P("chara","角色","chara")),
-            Cmd("等级经验", "获得经验", "{chara}.exp = {num}",
-                P("chara","角色","chara"), P("num","经验值","num","1000")),
-            Cmd("等级经验", "队伍升级(需经验足够)", "game.hotelView.checkLevelUp()"),
+            MakeCmd("等级经验", "升级到指定等级", "{chara}.levelUp({num})",
+                MakeParam("chara","角色","chara"), MakeParam("num","目标等级","num","99")),
+            MakeCmd("等级经验", "经验拉满升至最高(绿字时)", "{chara}.levelUpToTheLast()",
+                MakeParam("chara","角色","chara")),
+            MakeCmd("等级经验", "获得经验", "{chara}.exp = {num}",
+                MakeParam("chara","角色","chara"), MakeParam("num","经验值","num","1000")),
+            MakeCmd("等级经验", "队伍升级(需经验足够)", "game.hotelView.checkLevelUp()"),
             // ---- 六维属性 ----
-            Cmd("六维属性", "武艺", "{chara}.power = {num}", P("chara","角色","chara"), P("num","数值","num","99")),
-            Cmd("六维属性", "智慧", "{chara}.intellect = {num}", P("chara","角色","chara"), P("num","数值","num","99")),
-            Cmd("六维属性", "信仰", "{chara}.piety = {num}", P("chara","角色","chara"), P("num","数值","num","99")),
-            Cmd("六维属性", "生命力", "{chara}.vitality = {num}", P("chara","角色","chara"), P("num","数值","num","99")),
-            Cmd("六维属性", "敏捷", "{chara}.speed = {num}", P("chara","角色","chara"), P("num","数值","num","99")),
-            Cmd("六维属性", "运", "{chara}.luck = {num}", P("chara","角色","chara"), P("num","数值","num","99")),
+            MakeCmd("六维属性", "武艺", "{chara}.power = {num}", MakeParam("chara","角色","chara"), MakeParam("num","数值","num","99")),
+            MakeCmd("六维属性", "智慧", "{chara}.intellect = {num}", MakeParam("chara","角色","chara"), MakeParam("num","数值","num","99")),
+            MakeCmd("六维属性", "信仰", "{chara}.piety = {num}", MakeParam("chara","角色","chara"), MakeParam("num","数值","num","99")),
+            MakeCmd("六维属性", "生命力", "{chara}.vitality = {num}", MakeParam("chara","角色","chara"), MakeParam("num","数值","num","99")),
+            MakeCmd("六维属性", "敏捷", "{chara}.speed = {num}", MakeParam("chara","角色","chara"), MakeParam("num","数值","num","99")),
+            MakeCmd("六维属性", "运", "{chara}.luck = {num}", MakeParam("chara","角色","chara"), MakeParam("num","数值","num","99")),
             // ---- 魔法上限 ----
-            Cmd("魔法上限", "精灵魔法上限", "{chara}.mmagicMax = {arr9}", P("chara","角色","chara"), P("arr9","数值数组","arr9","[99,99,99,99,99,99,99,99,99]")),
-            Cmd("魔法上限", "神圣魔法上限", "{chara}.pmagicMax = {arr9}", P("chara","角色","chara"), P("arr9","数值数组","arr9","[99,99,99,99,99,99,99,99,99]")),
-            Cmd("魔法上限", "炼金魔法上限", "{chara}.amagicMax = {arr9}", P("chara","角色","chara"), P("arr9","数值数组","arr9","[99,99,99,99,99,99,99,99,99]")),
-            Cmd("魔法上限", "召唤魔法上限", "{chara}.smagicMax = {arr9}", P("chara","角色","chara"), P("arr9","数值数组","arr9","[99,99,99,99,99,99,99,99,99]")),
+            MakeCmd("魔法上限", "精灵魔法上限", "{chara}.mmagicMax = {arr9}", MakeParam("chara","角色","chara"), MakeParam("arr9","数值数组","arr9","[99,99,99,99,99,99,99,99,99]")),
+            MakeCmd("魔法上限", "神圣魔法上限", "{chara}.pmagicMax = {arr9}", MakeParam("chara","角色","chara"), MakeParam("arr9","数值数组","arr9","[99,99,99,99,99,99,99,99,99]")),
+            MakeCmd("魔法上限", "炼金魔法上限", "{chara}.amagicMax = {arr9}", MakeParam("chara","角色","chara"), MakeParam("arr9","数值数组","arr9","[99,99,99,99,99,99,99,99,99]")),
+            MakeCmd("魔法上限", "召唤魔法上限", "{chara}.smagicMax = {arr9}", MakeParam("chara","角色","chara"), MakeParam("arr9","数值数组","arr9","[99,99,99,99,99,99,99,99,99]")),
             // ---- 物品 ----
-            Cmd("物品", "设置金钱(所持金)", "game.party.gold = {num}", P("num","金钱","num","999999")),
-            Cmd("物品", "增加金钱(所持金)", "game.party.gold += {num}", P("num","金钱","num","100000")),
-            Cmd("物品", "发放物品(目标角色)", "{chara}.insertItem({item})",
-                new ParamSpec[] { P("chara","目标角色","chara"), P("item","物品","item") }, "item"),
-            Cmd("物品", "发放物品(队伍)", "game.party.insertItem({item})",
-                new ParamSpec[] { P("item","物品","item") }, "item"),
-            Cmd("物品", "发放高能炸弹", "game.chara[0].insertItem(o.ハイパーボム)"),
+            MakeCmd("物品", "设置金钱(所持金)", "game.party.gold = {num}", MakeParam("num","金钱","num","999999")),
+            MakeCmd("物品", "增加金钱(所持金)", "game.party.gold += {num}", MakeParam("num","金钱","num","100000")),
+            MakeCmd("物品", "发放物品(目标角色)", "{chara}.insertItem({item})",
+                new ParamSpec[] { MakeParam("chara","目标角色","chara"), MakeParam("item","物品","item") }, "item"),
+            MakeCmd("物品", "发放物品(队伍)", "game.party.insertItem({item})",
+                new ParamSpec[] { MakeParam("item","物品","item") }, "item"),
+            MakeCmd("物品", "发放高能炸弹", "game.chara[0].insertItem(o.ハイパーボム)"),
             // ---- 时间 ----
-            Cmd("时间", "时间推进", "game.elapse({num})", P("num","天数","num","30")),
+            MakeCmd("时间", "时间推进", "game.elapse({num})", MakeParam("num","天数","num","30")),
             // ---- 状态异常 ----
-            Cmd("状态异常", "设置异常状态", "{chara}.setStatus({status}, {bool})",
-                P("chara","角色","chara"), P("status","状态","status","麻痺"), P("bool","开启","bool","true")),
+            MakeCmd("状态异常", "设置异常状态", "{chara}.setStatus({status}, {bool})",
+                MakeParam("chara","角色","chara"), MakeParam("status","状态","status","麻痺"), MakeParam("bool","开启","bool","true")),
             // ---- 结婚 ----
-            Cmd("结婚", "与角色结婚(四步,不触发主线)", "(game.wife = {chara}, {o}.married = true, game.wife.married = true, game.wife.events = [13,17,14,15,16,30,50,70])",
-                P("chara","角色索引","chara"), P("o","角色o键","o","テオ")),
+            MakeCmd("结婚", "与角色结婚(四步,不触发主线)", "(game.wife = {chara}, {o}.married = true, game.wife.married = true, game.wife.events = [13,17,14,15,16,30,50,70])",
+                MakeParam("chara","角色索引","chara"), MakeParam("o","角色o键","o","テオ")),
             // ---- 队伍 ----
-            Cmd("队伍", "加入主力(主角テオ)", "game.party.entry(o.テオ)"),
-            Cmd("队伍", "加入主力(基友マックス)", "game.party.entry(o.マックス)"),
-            Cmd("队伍", "加入主力(洁丽尔リーゼル)", "game.party.entry(o.リーゼル)"),
-            Cmd("队伍", "移除主力成员", "game.party.removeMember({o})", P("o","成员","o","テオ", PartyKeys)),
-            Cmd("队伍", "加入支援队伍(右侧)", "game.guest.entry({o})", P("o","角色","o","ポラリス", GuestKeys)),
-            Cmd("队伍", "移除支援成员", "game.guest.removeMember({o})", P("o","成员","o","ポラリス", GuestKeys)),
-            Cmd("队伍", "加佣兵(右侧那排)", "game.hiring.add({o})", P("o","佣兵","o","ブレイズマン", Mercs)),
-            Cmd("队伍", "取消基友特殊地位", "o.マックス.regular = false"),
+            MakeCmd("队伍", "加入主力(主角テオ)", "game.party.entry(o.テオ)"),
+            MakeCmd("队伍", "加入主力(基友マックス)", "game.party.entry(o.マックス)"),
+            MakeCmd("队伍", "加入主力(洁丽尔リーゼル)", "game.party.entry(o.リーゼル)"),
+            MakeCmd("队伍", "移除主力成员", "game.party.removeMember({o})", MakeParam("o","成员","o","テオ", PartyKeys)),
+            MakeCmd("队伍", "加入支援队伍(右侧)", "game.guest.entry({o})", MakeParam("o","角色","o","ポラリス", GuestKeys)),
+            MakeCmd("队伍", "移除支援成员", "game.guest.removeMember({o})", MakeParam("o","成员","o","ポラリス", GuestKeys)),
+            MakeCmd("队伍", "加佣兵(右侧那排)", "game.hiring.add({o})", MakeParam("o","佣兵","o","ブレイズマン", Mercs)),
+            MakeCmd("队伍", "取消基友特殊地位", "o.マックス.regular = false"),
             // ---- 地图 ----
-            Cmd("地图", "全区域地图开启", "game.map.showAllArea = true"),
-            Cmd("地图", "遇怪概率(0不遇怪/1每步遇怪)", "game.map.battleRate = {num}", P("num","概率","num","0")),
+            MakeCmd("地图", "全区域地图开启", "game.map.showAllArea = true"),
+            MakeCmd("地图", "遇怪概率(0不遇怪/1每步遇怪)", "game.map.battleRate = {num}", MakeParam("num","概率","num","0")),
             // ---- 技能 ----
-            Cmd("技能", "添加技能", "{chara}.skill.add({skill})",
-                P("chara","角色","chara"), P("skill","技能","skill","偵察")),
-            Cmd("技能", "删除技能", "{chara}.skill.remove({skill})",
-                P("chara","角色","chara"), P("skill","技能","skill","擊倒")),
-            Cmd("技能", "学会魔法", "{chara}.learnSkill({magic})",
-                P("chara","角色","chara","2"), P("magic","魔法","magic","ファイア")),
+            MakeCmd("技能", "添加技能", "{chara}.skill.add({skill})",
+                MakeParam("chara","角色","chara"), MakeParam("skill","技能","skill","偵察")),
+            MakeCmd("技能", "删除技能", "{chara}.skill.remove({skill})",
+                MakeParam("chara","角色","chara"), MakeParam("skill","技能","skill","擊倒")),
+            MakeCmd("技能", "学会魔法", "{chara}.learnSkill({magic})",
+                MakeParam("chara","角色","chara","2"), MakeParam("magic","魔法","magic","ファイア")),
             // ---- 男主 ----
-            Cmd("男主数据", "性技巧", "game.chara[0].technic = {num}", P("num","数值","num","99")),
-            Cmd("男主数据", "阴茎长度", "game.chara[0].penis = {num}", P("num","数值","num","30")),
-            Cmd("男主数据", "性经验人数", "{chara}.loversCount = {num}", P("chara","角色","chara"), P("num","人数","num","10")),
-            Cmd("男主数据", "男主性爱次数", "game.chara[0].sexCount.self = {num}", P("num","次数","num","10")),
+            MakeCmd("男主数据", "性技巧", "game.chara[0].technic = {num}", MakeParam("num","数值","num","99")),
+            MakeCmd("男主数据", "阴茎长度", "game.chara[0].penis = {num}", MakeParam("num","数值","num","30")),
+            MakeCmd("男主数据", "性经验人数", "{chara}.loversCount = {num}", MakeParam("chara","角色","chara"), MakeParam("num","人数","num","10")),
+            MakeCmd("男主数据", "男主性爱次数", "game.chara[0].sexCount.self = {num}", MakeParam("num","次数","num","10")),
             // ---- 后宫数值 ----
-            Cmd("后宫数值", "好感度", "{o}.love.{guy} = {num}",
-                P("o","角色","o","サンドラ"), P("guy","对象","guy","theo", Guys), P("num","数值","num","100")),
-            Cmd("后宫数值", "性爱次数", "{o}.sexCount.{guy} = {num}",
-                P("o","角色","o","サンドラ"), P("guy","对象","guy","theo", Guys), P("num","次数","num","10")),
-            Cmd("后宫数值", "立绘状态", "{o}.strip.{guy} = {strip}",
-                P("o","角色","o","サンドラ"), P("guy","对象","guy","theo", Guys), P("strip","立绘","strip","裸", Strips)),
-            Cmd("后宫数值", "开发度", "{o}.develop.{guy} = {num}",
-                P("o","角色","o","サンドラ"), P("guy","对象","guy","theo", Guys), P("num","数值","num","100")),
-            Cmd("后宫数值", "警戒度", "{o}.guard.{guy} = {num}",
-                P("o","角色","o","サンドラ"), P("guy","对象","guy","theo", Guys), P("num","数值","num","0")),
-            Cmd("后宫数值", "性欲度", "{o}.desire = {num}", P("o","角色","o","サンドラ"), P("num","数值","num","10")),
-            Cmd("后宫数值", "贞洁度", "{o}.moral = {num}", P("o","角色","o","サンドラ"), P("num","数值","num","100")),
-            Cmd("后宫数值", "暴露度", "{o}.expose = {num}", P("o","角色","o","サンドラ"), P("num","数值","num","0")),
-            Cmd("后宫数值", "敏感度", "{o}.feel = {num}", P("o","角色","o","サンドラ"), P("num","数值","num","10")),
-            Cmd("后宫数值", "卖春数", "{o}.sellCount = {num}", P("o","角色","o","サンドラ"), P("num","数值","num","0")),
-            Cmd("后宫数值", "出轨数", "{o}.affairCount = {num}", P("o","角色","o","サンドラ"), P("num","数值","num","0")),
-            Cmd("后宫数值", "中出数", "{o}.pourCount = {num}", P("o","角色","o","サンドラ"), P("num","数值","num","0")),
-            Cmd("后宫数值", "怀孕程度", "{o}.pregnant = {preg}",
-                P("o","角色","o","サンドラ"), P("preg","怀孕程度","preg","NO_PREGNANCY")),
-            Cmd("后宫数值", "怀孕数", "{o}.pregnantCount = {num}", P("o","角色","o","サンドラ"), P("num","数值","num","0")),
-            Cmd("后宫数值", "性欲上升间隔", "{o}.heatCounter = {num}", P("o","角色","o","サンドラ"), P("num","数值","num","0")),
-            Cmd("后宫数值", "囚禁时间", "{o}.slaveTerm = {num}", P("o","角色","o","サンドラ"), P("num","数值","num","0")),
-            Cmd("后宫数值", "初夜对象", "{o}.firstPartnerKey = \"{guy}\"",
-                P("o","角色","o","サンドラ"), P("guy","对象","guy","theo", Guys)),
-            Cmd("后宫数值", "清空性爱日记", "{o}.diary = %[]", P("o","角色","o","サンドラ")),
-            Cmd("后宫数值", "强行扒衣(次要人物)", "{o}.equipLife = {strip}",
-                P("o","角色","o","サンドラ"), P("strip","立绘","strip","裸", StripsSub)),
+            MakeCmd("后宫数值", "好感度", "{o}.love.{guy} = {num}",
+                MakeParam("o","角色","o","サンドラ"), MakeParam("guy","对象","guy","theo", Guys), MakeParam("num","数值","num","100")),
+            MakeCmd("后宫数值", "性爱次数", "{o}.sexCount.{guy} = {num}",
+                MakeParam("o","角色","o","サンドラ"), MakeParam("guy","对象","guy","theo", Guys), MakeParam("num","次数","num","10")),
+            MakeCmd("后宫数值", "立绘状态", "{o}.strip.{guy} = {strip}",
+                MakeParam("o","角色","o","サンドラ"), MakeParam("guy","对象","guy","theo", Guys), MakeParam("strip","立绘","strip","裸", Strips)),
+            MakeCmd("后宫数值", "开发度", "{o}.develop.{guy} = {num}",
+                MakeParam("o","角色","o","サンドラ"), MakeParam("guy","对象","guy","theo", Guys), MakeParam("num","数值","num","100")),
+            MakeCmd("后宫数值", "警戒度", "{o}.guard.{guy} = {num}",
+                MakeParam("o","角色","o","サンドラ"), MakeParam("guy","对象","guy","theo", Guys), MakeParam("num","数值","num","0")),
+            MakeCmd("后宫数值", "性欲度", "{o}.desire = {num}", MakeParam("o","角色","o","サンドラ"), MakeParam("num","数值","num","10")),
+            MakeCmd("后宫数值", "贞洁度", "{o}.moral = {num}", MakeParam("o","角色","o","サンドラ"), MakeParam("num","数值","num","100")),
+            MakeCmd("后宫数值", "暴露度", "{o}.expose = {num}", MakeParam("o","角色","o","サンドラ"), MakeParam("num","数值","num","0")),
+            MakeCmd("后宫数值", "敏感度", "{o}.feel = {num}", MakeParam("o","角色","o","サンドラ"), MakeParam("num","数值","num","10")),
+            MakeCmd("后宫数值", "卖春数", "{o}.sellCount = {num}", MakeParam("o","角色","o","サンドラ"), MakeParam("num","数值","num","0")),
+            MakeCmd("后宫数值", "出轨数", "{o}.affairCount = {num}", MakeParam("o","角色","o","サンドラ"), MakeParam("num","数值","num","0")),
+            MakeCmd("后宫数值", "中出数", "{o}.pourCount = {num}", MakeParam("o","角色","o","サンドラ"), MakeParam("num","数值","num","0")),
+            MakeCmd("后宫数值", "怀孕程度", "{o}.pregnant = {preg}",
+                MakeParam("o","角色","o","サンドラ"), MakeParam("preg","怀孕程度","preg","NO_PREGNANCY")),
+            MakeCmd("后宫数值", "怀孕数", "{o}.pregnantCount = {num}", MakeParam("o","角色","o","サンドラ"), MakeParam("num","数值","num","0")),
+            MakeCmd("后宫数值", "性欲上升间隔", "{o}.heatCounter = {num}", MakeParam("o","角色","o","サンドラ"), MakeParam("num","数值","num","0")),
+            MakeCmd("后宫数值", "囚禁时间", "{o}.slaveTerm = {num}", MakeParam("o","角色","o","サンドラ"), MakeParam("num","数值","num","0")),
+            MakeCmd("后宫数值", "初夜对象", "{o}.firstPartnerKey = \"{guy}\"",
+                MakeParam("o","角色","o","サンドラ"), MakeParam("guy","对象","guy","theo", Guys)),
+            MakeCmd("后宫数值", "清空性爱日记", "{o}.diary = %[]", MakeParam("o","角色","o","サンドラ")),
+            MakeCmd("后宫数值", "强行扒衣(次要人物)", "{o}.equipLife = {strip}",
+                MakeParam("o","角色","o","サンドラ"), MakeParam("strip","立绘","strip","裸", StripsSub)),
             // ---- 性记录 ----
-            Cmd("性记录", "添加性爱记录", "{chara}.addSexRecordAndChangeHeart(%[date: game.date, guyKey: \"{guy}\", sexCount: {num}, satisfy: {num}, orgasmCount: {num}, acts: [{acts}]])",
-                P("chara","角色","chara","2"), P("guy","对象","guy","theo", Guys),
-                P("num","次数","num","5"), P("num2","满足","num","5"), P("num3","高潮","num","1"),
-                P("acts","体位列表(逗号分隔)","acts","正常位,背面座位")),
+            MakeCmd("性记录", "添加性爱记录", "{chara}.addSexRecordAndChangeHeart(%[date: game.date, guyKey: \"{guy}\", sexCount: {num}, satisfy: {num}, orgasmCount: {num}, acts: [{acts}]])",
+                MakeParam("chara","角色","chara","2"), MakeParam("guy","对象","guy","theo", Guys),
+                MakeParam("num","次数","num","5"), MakeParam("num2","满足","num","5"), MakeParam("num3","高潮","num","1"),
+                MakeParam("acts","体位列表(逗号分隔)","acts","正常位,背面座位")),
         };
 
-        static CmdDef Cmd(string group, string name, string template, params ParamSpec[] ps)
+        static CmdDef MakeCmd(string group, string name, string template, params ParamSpec[] ps)
         {
             return new CmdDef { Group = group, Name = name, Template = template, Params = ps };
         }
-        static CmdDef Cmd(string group, string name, string template, ParamSpec[] ps, string countParam)
+        static CmdDef MakeCmd(string group, string name, string template, ParamSpec[] ps, string countParam)
         {
             return new CmdDef { Group = group, Name = name, Template = template, Params = ps, CountParam = countParam };
         }
@@ -217,18 +217,18 @@ namespace DzbTrainer
     // ============================================================
     public class MainWindow : Window
     {
-        static readonly Brush BgMain = B("#1E1E2E");
-        static readonly Brush BgPanel = B("#2A2A3E");
-        static readonly Brush BgInput = B("#232334");
-        static readonly Brush BgActive = B("#4A4A68");
-        static readonly Brush BorderC = B("#4A4A68");
-        static readonly Brush Accent = B("#7C5CFF");
-        static readonly Brush TextMain = B("#E8E8F0");
-        static readonly Brush TextDim = B("#9A9AB0");
-        static readonly Brush OkGreen = B("#4CAF50");
-        static readonly Brush ErrRed = B("#E05C5C");
+        static readonly Brush BgMain = MakeBrush("#1E1E2E");
+        static readonly Brush BgPanel = MakeBrush("#2A2A3E");
+        static readonly Brush BgInput = MakeBrush("#232334");
+        static readonly Brush BgActive = MakeBrush("#4A4A68");
+        static readonly Brush BorderC = MakeBrush("#4A4A68");
+        static readonly Brush Accent = MakeBrush("#7C5CFF");
+        static readonly Brush TextMain = MakeBrush("#E8E8F0");
+        static readonly Brush TextDim = MakeBrush("#9A9AB0");
+        static readonly Brush OkGreen = MakeBrush("#4CAF50");
+        static readonly Brush ErrRed = MakeBrush("#E05C5C");
 
-        static Brush B(string hex) { return new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex)); }
+        static Brush MakeBrush(string hex) { return new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex)); }
 
         PipeClient pipe = new PipeClient();
         AppConfig config = AppConfig.Load();
@@ -254,6 +254,9 @@ namespace DzbTrainer
         Dictionary<string, string> oKeyDisplay = new Dictionary<string, string>();  // o键 -> displayName(中文)
         List<string> oKeys = new List<string>();
         int loadingRegistry = 0; // LoadRegistry 防重入标志（Interlocked）
+        const int LogMaxItems = 500;      // 日志区最大行数
+        const int InitTimeoutSec = 180;   // 初始化连接等待上限（游戏冷启动慢）
+        const int ExecMaxCount = 100;     // 单次执行次数上限
 
         CmdDef selectedCmd;
         Dictionary<string, Control> paramControls = new Dictionary<string, Control>();
@@ -291,6 +294,13 @@ namespace DzbTrainer
             }
             if (config.Debug)
                 Log("调试模式已开启（日志将写入 " + AppConfig.DebugLogPath + "）");
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            // 窗口关闭后停止状态轮询定时器，避免后台线程泄漏
+            if (statusTimer != null) statusTimer.Stop();
+            base.OnClosed(e);
         }
 
         // ============ 通用帮助 ============
@@ -519,7 +529,7 @@ namespace DzbTrainer
             Dispatcher.Invoke(new Action(() =>
             {
                 logBox.Items.Add("[" + DateTime.Now.ToString("HH:mm:ss") + "] " + msg);
-                if (logBox.Items.Count > 500) logBox.Items.RemoveAt(0);
+                if (logBox.Items.Count > LogMaxItems) logBox.Items.RemoveAt(0);
                 logBox.ScrollIntoView(logBox.Items[logBox.Items.Count - 1]);
             }));
         }
@@ -672,7 +682,7 @@ namespace DzbTrainer
 
                 // 3. 等待管道连接（最长 180s，游戏冷启动与插件加载可能较慢）
                 Log("等待游戏连接…");
-                for (int i = 0; i < 180; i++)
+                for (int i = 0; i < InitTimeoutSec; i++)
                 {
                     if (pipe.Ping() == "PONG")
                     {
@@ -1239,7 +1249,7 @@ namespace DzbTrainer
                 catch { count = 1; }
             }
             if (count < 1) count = 1;
-            if (count > 100) count = 100;
+            if (count > ExecMaxCount) count = ExecMaxCount;
             BackgroundLoad(() =>
             {
                 try

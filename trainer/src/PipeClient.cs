@@ -1,6 +1,6 @@
-// PipeClient.cs — named pipe client for the tb_bridge protocol.
-// The server closes the connection after each command, so every Eval opens a
-// fresh connection (with retry) and drops the handle afterwards.
+// PipeClient.cs — tb_bridge 协议的命名管道客户端。
+// 服务器（插件）每次命令后关闭连接，因此每次 Eval/Ping/List 都新建连接（带重试与超时）并释放句柄。
+// 协议：写 "CMD\n" + 4字节长度 + 正文；响应为一行状态（PONG/OK/ERR）+ 4字节长度 + 正文。
 using System;
 using System.Text;
 using System.Runtime.InteropServices;
