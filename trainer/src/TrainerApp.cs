@@ -331,6 +331,7 @@ namespace DzbTrainer
         static ControlTemplate ComboDarkTemplate()
         {
             if (comboDarkTemplate != null) return comboDarkTemplate;
+            // 颜色经占位符从画刷常量注入（单一数据源）；避免 string.Format 与 {Binding} 冲突用 Replace
             const string xaml =
                 "<ControlTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' " +
                 "xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' TargetType='ComboBox'>" +
@@ -339,10 +340,10 @@ namespace DzbTrainer
                 "    IsChecked='{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}' Background='Transparent'>" +
                 "    <ToggleButton.Template>" +
                 "      <ControlTemplate TargetType='ToggleButton'>" +
-                "        <Border Background='#232334' BorderBrush='#4A4A68' BorderThickness='1' CornerRadius='2'>" +
+                "        <Border Background='{C_INPUT}' BorderBrush='{C_BORDER}' BorderThickness='1' CornerRadius='2'>" +
                 "          <Grid>" +
                 "            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width='18'/></Grid.ColumnDefinitions>" +
-                "            <Path Grid.Column='1' Data='M 0 0 L 4 4 L 8 0 Z' Fill='#9A9AB0' HorizontalAlignment='Center' VerticalAlignment='Center'/>" +
+                "            <Path Grid.Column='1' Data='M 0 0 L 4 4 L 8 0 Z' Fill='{C_DIM}' HorizontalAlignment='Center' VerticalAlignment='Center'/>" +
                 "          </Grid>" +
                 "        </Border>" +
                 "      </ControlTemplate>" +
@@ -353,7 +354,7 @@ namespace DzbTrainer
                 "    ContentStringFormat='{TemplateBinding SelectionBoxItemStringFormat}'/>" +
                 "  <Popup x:Name='PART_Popup' Placement='Bottom' IsOpen='{TemplateBinding IsDropDownOpen}'" +
                 "    AllowsTransparency='True' Focusable='False' PopupAnimation='Slide'>" +
-                "    <Border Background='#232334' BorderBrush='#4A4A68' BorderThickness='1' CornerRadius='2'" +
+                "    <Border Background='{C_INPUT}' BorderBrush='{C_BORDER}' BorderThickness='1' CornerRadius='2'" +
                 "      MinWidth='{TemplateBinding ActualWidth}' MaxHeight='{TemplateBinding MaxDropDownHeight}'>" +
                 "      <ScrollViewer VerticalScrollBarVisibility='Auto'>" +
                 "        <ItemsPresenter/>" +
@@ -361,7 +362,11 @@ namespace DzbTrainer
                 "    </Border>" +
                 "  </Popup>" +
                 "</Grid></ControlTemplate>";
-            comboDarkTemplate = (ControlTemplate)System.Windows.Markup.XamlReader.Parse(xaml);
+            string filled = xaml
+                .Replace("{C_INPUT}", "#232334")
+                .Replace("{C_BORDER}", "#4A4A68")
+                .Replace("{C_DIM}", "#9A9AB0");
+            comboDarkTemplate = (ControlTemplate)System.Windows.Markup.XamlReader.Parse(filled);
             return comboDarkTemplate;
         }
 
@@ -1150,11 +1155,12 @@ namespace DzbTrainer
             return cb;
         }
 
-        ComboBox MakeStripCombo(string[] opts, string def)
+        // 固定选项下拉：quoteValues=true 时值加引号（strip 类 TJS 字符串参数）
+        ComboBox MakeFixedCombo(string[] opts, string def, bool quoteValues)
         {
             var cb = MakeCombo(120);
             for (int i = 0; i < opts.Length; i++)
-                cb.Items.Add(new ComboItem(opts[i], "\"" + opts[i] + "\""));
+                cb.Items.Add(new ComboItem(opts[i], quoteValues ? "\"" + opts[i] + "\"" : opts[i]));
             int sel = 0;
             for (int i = 0; i < opts.Length; i++)
                 if (opts[i] == def) sel = i;
@@ -1162,16 +1168,14 @@ namespace DzbTrainer
             return cb;
         }
 
+        ComboBox MakeStripCombo(string[] opts, string def)
+        {
+            return MakeFixedCombo(opts, def, true);
+        }
+
         ComboBox MakeGuyCombo(string[] opts, string def)
         {
-            var cb = MakeCombo(120);
-            for (int i = 0; i < opts.Length; i++)
-                cb.Items.Add(new ComboItem(opts[i], opts[i]));
-            int sel = 0;
-            for (int i = 0; i < opts.Length; i++)
-                if (opts[i] == def) sel = i;
-            cb.SelectedIndex = sel;
-            return cb;
+            return MakeFixedCombo(opts, def, false);
         }
 
         string[] SkillsFromRegistry()

@@ -1,19 +1,22 @@
 ﻿# test_ui.ps1 — automated UI test for Trainer.exe (重构版：指令拼接器) via UIAutomation.
-# Usage: test_ui.ps1
+# Usage: test_ui.ps1 [-Root <repo-root>] [-GameDir <game-dir>]
+param(
+    [string]$Root = "C:\Users\1\Desktop\CR\DXCXN",
+    [string]$GameDir = "C:\Users\1\Desktop\CR\ダンジョン＆ブライド"
+)
 $ErrorActionPreference = 'Continue'
 Add-Type -AssemblyName UIAutomationClient
 Add-Type -AssemblyName UIAutomationTypes
 
-$trainer = "C:\Users\1\Desktop\CR\DXCXN\trainer\Trainer.exe"
-$crashLog = "C:\Users\1\Desktop\CR\DXCXN\trainer\crash.log"
+$trainer = "$Root\trainer\Trainer.exe"
+$crashLog = "$Root\trainer\crash.log"
 $results = @()
 
 # ---- 预置测试配置（防首次启动向导弹窗 + 验证配置系统） ----
 $cfgDir = Join-Path $env:APPDATA "DzbTrainer"
 New-Item -ItemType Directory -Force -Path $cfgDir | Out-Null
-$gameDir = "C:\Users\1\Desktop\CR\ダンジョン＆ブライド"
 [System.IO.File]::WriteAllText((Join-Path $cfgDir "config.json"),
-    "{`"gameDir`":`"$gameDir`",`"debug`":false,`"autoLaunchGame`":true}",
+    "{`"gameDir`":`"$GameDir`",`"debug`":false,`"autoLaunchGame`":true}",
     [System.Text.Encoding]::UTF8)
 Write-Output "pre-seeded config: $cfgDir\config.json"
 
@@ -27,7 +30,7 @@ $crashBefore = 0
 if (Test-Path $crashLog) { $crashBefore = (Get-Content $crashLog).Count }
 
 # ---- 预启动游戏（冷启动慢，先就绪再测 Trainer；以 game.items.count 可返回为就绪标志，轮询最长 120s） ----
-$gameDir2 = "C:\Users\1\Desktop\CR\ダンジョン＆ブライド"
+$gameDir2 = $GameDir
 if (-not (Get-Process game64 -ErrorAction SilentlyContinue)) {
     Start-Process (Join-Path $gameDir2 "game64.exe")
     Write-Output "game launched, waiting for ready..."
@@ -131,7 +134,7 @@ Write-Test "注册表加载(物品/角色/魔法)" $loaded ""
 # ---- TDD 新增断言：配置系统 / 初始化流程（先 RED 后 GREEN） ----
 # 1. 配置持久化：预置 config.json 应被正确读取（gameDir 中文路径往返）
 $cfgText = Get-Content (Join-Path $cfgDir "config.json") -Raw -Encoding UTF8
-Write-Test "配置持久化(gameDir中文路径)" ($cfgText -match [regex]::Escape($gameDir)) ""
+Write-Test "配置持久化(gameDir中文路径)" ($cfgText -match [regex]::Escape($GameDir)) ""
 
 # 2. 初始化流程：日志应出现 插件部署/连接 记录（自动部署+自动连接）
 $initOk = $false

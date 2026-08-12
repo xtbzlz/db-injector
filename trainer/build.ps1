@@ -1,10 +1,13 @@
 ﻿# Build Trainer.exe (WPF, .NET Framework 4, code-only UI)
 # 单文件交付：tb_bridge.dll 插件内嵌为资源，运行时释放为游戏目录 plugin\tb_bridge.tpm
+param(
+    [string]$Root = "C:\Users\1\Desktop\CR\DXCXN"  # 仓库根目录（可在其他机器覆盖）
+)
 $csc = "C:\WINDOWS\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
-$src = "C:\Users\1\Desktop\CR\DXCXN\trainer\src"
-$out = "C:\Users\1\Desktop\CR\DXCXN\trainer\Trainer.exe"
+$src = "$Root\trainer\src"
+$out = "$Root\trainer\Trainer.exe"
 $gac = "C:\WINDOWS\Microsoft.NET\assembly"
-$pluginRes = "C:\Users\1\Desktop\CR\DXCXN\bridge\bin\tb_bridge.dll"
+$pluginRes = "$Root\bridge\bin\tb_bridge.dll"
 
 function Find-Gac($name) {
     foreach ($root in @("$gac\GAC_MSIL", "$gac\GAC_32", "$gac\GAC_64")) {
