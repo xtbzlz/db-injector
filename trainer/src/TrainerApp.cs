@@ -655,7 +655,7 @@ namespace DzbTrainer
                 string dir = Path.GetDirectoryName(ofd.FileName);
                 if (string.IsNullOrEmpty(dir)) return;
                 config.GameDir = dir;
-                config.Save();
+                if (!config.Save()) Log("警告：配置保存失败（" + AppConfig.ConfigPath + "）");
                 Log("游戏目录已设置: " + config.GameDir);
                 BackgroundLoad(InitGameFlow);
             }
@@ -1404,7 +1404,7 @@ namespace DzbTrainer
         void ToggleDebug()
         {
             config.Debug = !config.Debug;
-            config.Save();
+            if (!config.Save()) Log("警告：配置保存失败（" + AppConfig.ConfigPath + "）");
             if (debugBtn != null) debugBtn.Content = "调试模式: " + (config.Debug ? "开" : "关");
             Log("调试模式已" + (config.Debug ? "开启" : "关闭") + (config.Debug ? "（日志写入 " + AppConfig.DebugLogPath + "）" : ""));
         }

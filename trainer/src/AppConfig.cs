@@ -28,7 +28,8 @@ namespace DzbTrainer
             get { return Path.Combine(ConfigDir, "debug.log"); }
         }
 
-        public void Save()
+        // 返回是否成功；失败时由调用方提示用户（避免改目录/调开关静默丢失）
+        public bool Save()
         {
             try
             {
@@ -39,8 +40,9 @@ namespace DzbTrainer
                   .Append(",\"autoLaunchGame\":").Append(AutoLaunchGame ? "true" : "false")
                   .Append("}");
                 File.WriteAllText(ConfigPath, sb.ToString(), Encoding.UTF8);
+                return true;
             }
-            catch { }
+            catch { return false; }
         }
 
         public static AppConfig Load()

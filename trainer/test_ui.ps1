@@ -192,7 +192,7 @@ foreach ($el in $all) {
 }
 Write-Test "维护页(清空背包/重载)" $hasClear ""
 
-# TDD 新增断言：维护页 修改游戏目录/调试模式/查看插件日志 三按钮（未实现→RED）
+# TDD 新增断言：维护页 修改游戏目录/调试模式/查看插件日志 三按钮
 $hasDirBtn = $false; $hasDebugBtn = $false; $hasLogBtn = $false
 foreach ($el in $all) {
     if ($el.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button) {
