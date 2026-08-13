@@ -86,8 +86,9 @@ namespace DzbTrainer
         }
 
         static readonly string[] Guys = { "theo", "max", "linus", "blue", "alex" };
-        static readonly string[] Strips = { "通常", "下着", "パンツ", "裸", "汗だく", "妊娠", "ボテ腹" };
-        static readonly string[] StripsSub = { "通常", "裸", "汗だく" };
+        static readonly string[] GuyJpKeys = { "テオ", "マックス", "ライナス", "ブルー", "アレックス", "どこかの男" };
+        static readonly string[] Strips = { "通常", "下着", "パンツ", "裸・幸せ", "裸・不満", "裸・恥辱", "汗だく", "妊娠", "ボテ腹", "水着", "バスタオル", "上半身裸", "裸", "戦闘" };
+        static readonly string[] EquipLifeOpts = { "24", "12", "0", "96", "97", "98", "99", "100" };
         public static readonly string[] Statuses = { "麻痺", "毒", "猛毒", "睡眠", "混乱", "魅了", "呪い", "石化", "恐怖", "沉默", "衰弱", "疫病" };
         public static readonly string[] Skills = { "偵察", "反撃", "格闘", "聖拳", "回避", "鑑定", "修理", "探索", "警戒", "習得", "契約", "憑依術", "浄化", "全員かばう", "擊倒" };
         public static readonly string[] Mercs = { "ブレイズマン", "ソードダンサー", "チャンピオン", "エンジェルナイト", "アコライト", "ハイプリースト", "ミスティック", "メイガス", "スナイパー", "マスターアーチャー" };
@@ -100,13 +101,13 @@ namespace DzbTrainer
 
         public static CmdDef[] All = new CmdDef[] {
             // ---- 等级经验 ----
-            MakeCmd("等级经验", "升级到指定等级", "{chara}.levelUp({num})",
+            MakeCmd("等级经验", "升级到指定等级", "(function(){ var c = {chara}; var t = {num}; if(c.level >= t) return c.level; c.exp = 999999999; while(c.level < t && c.isLevelUp()) c.levelUp(); c.exp = 0; return c.level; })()",
                 MakeParam("chara","角色","chara"), MakeParam("num","目标等级","num","99")),
             MakeCmd("等级经验", "经验拉满升至最高(绿字时)", "{chara}.levelUpToTheLast()",
                 MakeParam("chara","角色","chara")),
             MakeCmd("等级经验", "获得经验", "{chara}.exp = {num}",
                 MakeParam("chara","角色","chara"), MakeParam("num","经验值","num","1000")),
-            MakeCmd("等级经验", "队伍升级(需经验足够)", "game.hotelView.checkLevelUp()"),
+            MakeCmd("等级经验", "队伍升级(需经验足够)", "(function(){ var n = 0, i; for(i = 0; i < game.party.members.count; i++){ if(game.party.members[i].isLevelUp()){ game.party.members[i].levelUp(); n++; } } for(i = 0; i < game.helper.count; i++){ if(game.helper[i].isLevelUp()){ game.helper[i].levelUp(); n++; } } return n; })()"),
             // ---- 六维属性 ----
             MakeCmd("六维属性", "武艺", "{chara}.power = {num}", MakeParam("chara","角色","chara"), MakeParam("num","数值","num","99")),
             MakeCmd("六维属性", "智慧", "{chara}.intellect = {num}", MakeParam("chara","角色","chara"), MakeParam("num","数值","num","99")),
@@ -128,25 +129,32 @@ namespace DzbTrainer
                 new ParamSpec[] { MakeParam("item","物品","item") }, "item"),
             MakeCmd("物品", "发放高能炸弹", "game.chara[0].insertItem(o.ハイパーボム)"),
             // ---- 时间 ----
-            MakeCmd("时间", "时间推进", "game.elapse({num})", MakeParam("num","天数","num","30")),
+            MakeCmd("时间", "时间推进(天数)", "game.elapse({num})", MakeParam("num","天数","num","30")),
             // ---- 状态异常 ----
             MakeCmd("状态异常", "设置异常状态", "{chara}.setStatus({status}, {bool})",
                 MakeParam("chara","角色","chara"), MakeParam("status","状态","status","麻痺"), MakeParam("bool","开启","bool","true")),
             // ---- 结婚 ----
-            MakeCmd("结婚", "与角色结婚(四步,不触发主线)", "(game.wife = {chara}, {o}.married = true, game.wife.married = true, game.wife.events = [13,17,14,15,16,30,50,70])",
-                MakeParam("chara","角色索引","chara"), MakeParam("o","角色o键","o","テオ")),
+            MakeCmd("结婚", "与角色结婚(不触发主线)", "(function(){ var w = {o}; game.wife = w; w.married = true; w.events.assign([13,17,14,15,16,30,50,70]); game.curChara = w; return w.name; })()",
+                MakeParam("o","角色o键","o","サンドラ")),
             // ---- 队伍 ----
-            MakeCmd("队伍", "加入主力(主角テオ)", "game.party.entry(o.テオ)"),
-            MakeCmd("队伍", "加入主力(基友マックス)", "game.party.entry(o.マックス)"),
-            MakeCmd("队伍", "加入主力(洁丽尔リーゼル)", "game.party.entry(o.リーゼル)"),
-            MakeCmd("队伍", "移除主力成员", "game.party.removeMember({o})", MakeParam("o","成员","o","テオ", PartyKeys)),
-            MakeCmd("队伍", "加入支援队伍(右侧)", "game.guest.entry({o})", MakeParam("o","角色","o","ポラリス", GuestKeys)),
-            MakeCmd("队伍", "移除支援成员", "game.guest.removeMember({o})", MakeParam("o","成员","o","ポラリス", GuestKeys)),
+            MakeCmd("队伍", "加入主力(主角テオ)", "(function(){ if(game.inBattle) return 'inBattle'; var c = {o}; if(game.party.members.has(c)) return 'alreadyIn'; var g = o.王立ギルド; if(g.members.has(c)) g.removeMember(c); game.party.entry(c); return 'ok'; })()",
+                MakeParam("o","成员","o","テオ", PartyKeys)),
+            MakeCmd("队伍", "加入主力(基友マックス)", "(function(){ if(game.inBattle) return 'inBattle'; var c = {o}; if(game.party.members.has(c)) return 'alreadyIn'; var g = o.王立ギルド; if(g.members.has(c)) g.removeMember(c); game.party.entry(c); return 'ok'; })()",
+                MakeParam("o","成员","o","マックス", PartyKeys)),
+            MakeCmd("队伍", "加入主力(洁丽尔リーゼル)", "(function(){ if(game.inBattle) return 'inBattle'; var c = {o}; if(game.party.members.has(c)) return 'alreadyIn'; var g = o.王立ギルド; if(g.members.has(c)) g.removeMember(c); game.party.entry(c); return 'ok'; })()",
+                MakeParam("o","成员","o","リーゼル", PartyKeys)),
+            MakeCmd("队伍", "移除主力成员", "(function(){ var c = {o}; if(game.inBattle) return 'inBattle'; if(c.regular && ! c.semiRegular) return 'regularBlocked'; if(game.wife !== void && game.wife.model == c.model) return 'wifeBlocked'; if(game.party.members.has(c)) game.party.removeMember(c); return 'ok'; })()",
+                MakeParam("o","成员","o","マックス", PartyKeys)),
+            MakeCmd("队伍", "加入支援队伍(右侧)", "(function(){ if(game.inBattle) return 'inBattle'; var c = {o}; if(! game.guest.members.has(c)) game.guest.entry(c); return 'ok'; })()",
+                MakeParam("o","角色","o","ポラリス", GuestKeys)),
+            MakeCmd("队伍", "移除支援成员", "(function(){ if(game.inBattle) return 'inBattle'; var c = {o}; if(game.guest.members.has(c)) game.guest.removeMember(c); return 'ok'; })()",
+                MakeParam("o","成员","o","ポラリス", GuestKeys)),
             MakeCmd("队伍", "加佣兵(右侧那排)", "game.hiring.add({o})", MakeParam("o","佣兵","o","ブレイズマン", Mercs)),
             MakeCmd("队伍", "取消基友特殊地位", "o.マックス.regular = false"),
+            MakeCmd("队伍", "恢复基友特殊地位", "o.マックス.regular = true"),
             // ---- 地图 ----
-            MakeCmd("地图", "全区域地图开启", "game.map.showAllArea = true"),
-            MakeCmd("地图", "遇怪概率(0不遇怪/1每步遇怪)", "game.map.battleRate = {num}", MakeParam("num","概率","num","0")),
+            MakeCmd("地图", "当前区域地图开启", "game.map.showAllArea = true"),
+            MakeCmd("地图", "遇怪概率(0不遇怪/1每步遇怪)", "(function(){ if(game.map.monsters.count == 0) return 'noMonsters'; game.map.battleRate = cap({num}, 1, 0); return 'ok'; })()", MakeParam("num","概率","num","0")),
             // ---- 技能 ----
             MakeCmd("技能", "添加技能", "{chara}.skill.add({skill})",
                 MakeParam("chara","角色","chara"), MakeParam("skill","技能","skill","偵察")),
@@ -165,7 +173,7 @@ namespace DzbTrainer
             MakeCmd("后宫数值", "性爱次数", "{o}.sexCount.{guy} = {num}",
                 MakeParam("o","角色","o","サンドラ"), MakeParam("guy","对象","guy","theo", Guys), MakeParam("num","次数","num","10")),
             MakeCmd("后宫数值", "立绘状态", "{o}.strip.{guy} = {strip}",
-                MakeParam("o","角色","o","サンドラ"), MakeParam("guy","对象","guy","theo", Guys), MakeParam("strip","立绘","strip","裸", Strips)),
+                MakeParam("o","角色","o","サンドラ"), MakeParam("guy","对象","guy","theo", Guys), MakeParam("strip","立绘","strip","裸・幸せ", Strips)),
             MakeCmd("后宫数值", "开发度", "{o}.develop.{guy} = {num}",
                 MakeParam("o","角色","o","サンドラ"), MakeParam("guy","对象","guy","theo", Guys), MakeParam("num","数值","num","100")),
             MakeCmd("后宫数值", "警戒度", "{o}.guard.{guy} = {num}",
@@ -178,18 +186,18 @@ namespace DzbTrainer
             MakeCmd("后宫数值", "出轨数", "{o}.affairCount = {num}", MakeParam("o","角色","o","サンドラ"), MakeParam("num","数值","num","0")),
             MakeCmd("后宫数值", "中出数", "{o}.pourCount = {num}", MakeParam("o","角色","o","サンドラ"), MakeParam("num","数值","num","0")),
             MakeCmd("后宫数值", "怀孕程度", "{o}.pregnant = {preg}",
-                MakeParam("o","角色","o","サンドラ"), MakeParam("preg","怀孕程度","preg","NO_PREGNANCY")),
+                MakeParam("o","角色","o","サンドラ"), MakeParam("preg","阶段","guy","-20", new string[] { "-20", "0", "5", "10", "24", "25" })),
             MakeCmd("后宫数值", "怀孕数", "{o}.pregnantCount = {num}", MakeParam("o","角色","o","サンドラ"), MakeParam("num","数值","num","0")),
             MakeCmd("后宫数值", "性欲上升间隔", "{o}.heatCounter = {num}", MakeParam("o","角色","o","サンドラ"), MakeParam("num","数值","num","0")),
             MakeCmd("后宫数值", "囚禁时间", "{o}.slaveTerm = {num}", MakeParam("o","角色","o","サンドラ"), MakeParam("num","数值","num","0")),
             MakeCmd("后宫数值", "初夜对象", "{o}.firstPartnerKey = \"{guy}\"",
-                MakeParam("o","角色","o","サンドラ"), MakeParam("guy","对象","guy","theo", Guys)),
+                MakeParam("o","角色","o","サンドラ"), MakeParam("guy","对象","guy","テオ", GuyJpKeys)),
             MakeCmd("后宫数值", "清空性爱日记", "{o}.diary = %[]", MakeParam("o","角色","o","サンドラ")),
-            MakeCmd("后宫数值", "强行扒衣(次要人物)", "{o}.equipLife = {strip}",
-                MakeParam("o","角色","o","サンドラ"), MakeParam("strip","立绘","strip","裸", StripsSub)),
+            MakeCmd("后宫数值", "次要人物装备状态", "{o}.equipLife = {guy}",
+                MakeParam("o","角色","o","サンドラ"), MakeParam("guy","状态","guy","24", EquipLifeOpts)),
             // ---- 性记录 ----
-            MakeCmd("性记录", "添加性爱记录", "{chara}.addSexRecordAndChangeHeart(%[date: game.date, guyKey: \"{guy}\", sexCount: {num}, satisfy: {num}, orgasmCount: {num}, acts: [{acts}]])",
-                MakeParam("chara","角色","chara","2"), MakeParam("guy","对象","guy","theo", Guys),
+            MakeCmd("性记录", "添加性爱记录", "{chara}.addSexRecordAndChangeHeart(%[date: game.date, guyKey: \"{guy}\", sexCount: {num}, satisfy: {num2}, orgasmCount: {num3}, acts: [{acts}]])",
+                MakeParam("chara","角色","chara","2"), MakeParam("guy","对象","guy","テオ", GuyJpKeys),
                 MakeParam("num","次数","num","5"), MakeParam("num2","满足","num","5"), MakeParam("num3","高潮","num","1"),
                 MakeParam("acts","体位列表(逗号分隔)","acts","正常位,背面座位")),
         };
@@ -1407,7 +1415,7 @@ namespace DzbTrainer
             right.Children.Add(c3);
             var c4 = Card();
             c4.Children.Add(Lbl("注意事项", true, 12));
-            var noteLbl = Lbl("· 修改器与游戏必须同为运行状态；游戏重启后 Trainer 自动重连\n· 建议修改前先存档；修改均为运行时内存，读档可恢复\n· 杀软如拦截 tb_bridge.tpm / Trainer.exe，请加入白名单\n· 清空背包为数据层重置，游戏内重新打开背包即刷新", true, 12);
+            var noteLbl = Lbl("· 修改器与游戏必须同为运行状态；游戏重启后 Trainer 自动重连\n· 建议修改前先存档；修改均为运行时内存，读档可恢复\n· 杀软如拦截 tb_bridge.tpm / Trainer.exe，请加入白名单\n· 清空背包为数据层重置，游戏内重新打开背包即刷新\n· 次要人物装备状态：24完好 / 12损坏 / 0裸 / 96裸衣 / 97毛巾 / 98大毛巾 / 99泳装 / 100漂浮\n· 怀孕阶段：-20未孕 / 0-9怀孕 / 10-24大肚 / 25+产后哺乳", true, 12);
             noteLbl.TextWrapping = TextWrapping.Wrap;
             c4.Children.Add(noteLbl);
             Grid.SetRow(c4, 1);
