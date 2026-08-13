@@ -206,64 +206,9 @@ static int __cdecl catchBlock(void *data, const TVPExceptionDesc *desc)
 // ---------------------------------------------------------------------------
 // eval core (main thread)
 // ---------------------------------------------------------------------------
-// wrapper template: user code is inserted at @@USER@@.
-// If <gamedir>\tbc_wrapper.txt exists it overrides the built-in template
-// (lets us iterate on the wrapper without rebuilding/restarting).
-// The script stores its result into global.__tbc_result__; the plugin reads
-// it back via PropGet, which avoids depending on TJS's block-result feature.
-static const char *DEFAULT_WRAPPER =
-    "var __tbc_r;try{__tbc_r=(function(){@@USER@@"
-    "})();}catch(__tbc_e){__tbc_r='!!EXCEPTION!! '+__tbc_e;}"
-    "if(__tbc_r==null){__tbc_r='undefined';}"
-    "global.__tbc_result__=__tbc_r.toString();";
-
-static char *loadWrapperTemplate(void)
-{
-    if (!g_logDir[0]) return _strdup(DEFAULT_WRAPPER);
-    wchar_t path[1100];
-    wsprintfW(path, L"%ls\\tbc_wrapper.txt", g_logDir);
-    FILE *f = _wfopen(path, L"rb");
-    if (!f) return _strdup(DEFAULT_WRAPPER);
-    fseek(f, 0, SEEK_END);
-    long sz = ftell(f);
-    fseek(f, 0, SEEK_SET);
-    char *buf = (char *)malloc((size_t)sz + 1);
-    if (!buf) { fclose(f); return _strdup(DEFAULT_WRAPPER); }
-    size_t got = fread(buf, 1, (size_t)sz, f);
-    fclose(f);
-    buf[got] = 0;
-    return buf;
-}
-
-static char *buildWrapper(const char *code, int codeLen)
-{
-    char *tmpl = loadWrapperTemplate();
-    if (!tmpl) return NULL;
-    char *marker = strstr(tmpl, "@@USER@@");
-    if (!marker) {
-        // no marker: treat whole template as prefix and append code
-        int tl = (int)strlen(tmpl);
-        char *out = (char *)malloc(tl + codeLen + 1);
-        if (out) {
-            memcpy(out, tmpl, tl);
-            memcpy(out + tl, code, codeLen);
-            out[tl + codeLen] = 0;
-        }
-        free(tmpl);
-        return out;
-    }
-    int preLen = (int)(marker - tmpl);
-    int postLen = (int)strlen(marker + 8);
-    char *out = (char *)malloc(preLen + codeLen + postLen + 1);
-    if (out) {
-        memcpy(out, tmpl, preLen);
-        memcpy(out + preLen, code, codeLen);
-        memcpy(out + preLen + codeLen, marker + 8, postLen);
-        out[preLen + codeLen + postLen] = 0;
-    }
-    free(tmpl);
-    return out;
-}
+// EVAL sends raw code to TVPExecuteExpression (expression mode):
+// the code must be a single TJS expression. Multi-statement logic goes
+// inside (function(){ ... })() — the trainer templates already do this.
 
 typedef struct _EvalOutcome {
     int ok;
@@ -707,6 +652,31 @@ static int writeErr(HANDLE h, const char *msg)
     return writeAll(h, msg, ml);
 }
 
+static void stripCode(char *code, int *codeLen)
+{
+    char *p = code;
+    if (*codeLen >= 3 && (unsigned char)code[0] == 0xEF && (unsigned char)code[1] == 0xBB && (unsigned char)code[2] == 0xBF)
+        p = code + 3;
+    while (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n') p++;
+    int n = (int)strlen(p);
+    while (n > 0 && (p[n - 1] == ' ' || p[n - 1] == '\t' || p[n - 1] == '\r' || p[n - 1] == '\n')) n--;
+    p[n] = 0;
+    if (p != code) memmove(code, p, (size_t)n + 1);
+    *codeLen = n;
+}
+
+static void logErrCode(const char *code)
+{
+    char snap[220];
+    int i;
+    for (i = 0; i < 200 && code[i]; i++)
+        snap[i] = (code[i] == '\n' || code[i] == '\r') ? ' ' : code[i];
+    snap[i] = 0;
+    logStr("ERR code: ");
+    logStr(snap);
+    logStr("\n");
+}
+
 static void handleClient(HANDLE hPipe)
 {
     logStr("client connected\n");
@@ -774,6 +744,7 @@ static void handleClient(HANDLE hPipe)
             if (!code) { writeErr(hPipe, "no memory"); return; }
             if (!readExact(hPipe, code, (int)codeLen)) { free(code); return; }
             code[codeLen] = 0;
+            stripCode(code, (int *)&codeLen);
             HANDLE ev = CreateEventW(NULL, FALSE, FALSE, NULL);
             if (!ev) { free(code); writeErr(hPipe, "no event"); return; }
             if (!g_bridgeHwnd) { CloseHandle(ev); free(code); writeErr(hPipe, "no window"); return; }
@@ -793,6 +764,7 @@ static void handleClient(HANDLE hPipe)
                     writeAll(hPipe, (char *)l4, 4);
                     writeAll(hPipe, req->result, rl);
                 } else {
+                    logErrCode(req->code);
                     int el = (int)strlen(req->error);
                     writeAll(hPipe, "ERR\n", 4);
                     unsigned char l4[4] = { (unsigned char)(el & 0xFF), (unsigned char)((el >> 8) & 0xFF),
@@ -827,6 +799,7 @@ static void handleClient(HANDLE hPipe)
     if (!code) { writeErr(hPipe, "no memory"); return; }
     if (!readExact(hPipe, code, (int)codeLen)) { free(code); logStr("code read failed\n"); return; }
     code[codeLen] = 0;
+    stripCode(code, (int *)&codeLen);
     logStr("code received\n");
 
     HANDLE ev = CreateEventW(NULL, FALSE, FALSE, NULL);
@@ -858,6 +831,7 @@ static void handleClient(HANDLE hPipe)
             int w3 = writeAll(hPipe, req->result, rl);
             { char tmp[64]; _snprintf(tmp, sizeof(tmp), "resp OK len=%d w=%d,%d,%d\n", rl, w1, w2, w3); logStr(tmp); }
         } else {
+            logErrCode(req->code);
             int el = (int)strlen(req->error);
             int w1 = writeAll(hPipe, "ERR\n", 4);
             unsigned char l4[4] = { (unsigned char)(el & 0xFF), (unsigned char)((el >> 8) & 0xFF),

@@ -558,6 +558,16 @@ namespace DzbTrainer
             BackgroundLoad(() =>
             {
                 bool ok = pipe.Ping() == "PONG";
+                // 游戏不在运行时重试插件部署（上次部署可能因游戏占用文件而失败）
+                if (!ok)
+                {
+                    bool gameRunning = Process.GetProcessesByName("game64").Length > 0 || Process.GetProcessesByName("game").Length > 0;
+                    if (!gameRunning && !string.IsNullOrEmpty(config.GameDir) && Directory.Exists(config.GameDir))
+                    {
+                        try { DeployPlugin(Path.Combine(Path.Combine(config.GameDir, "plugin"), "tb_bridge.tpm")); }
+                        catch { }
+                    }
+                }
                 // 防抖：连续 2 次失败才显示未连接，避免游戏加载期单次超时误报
                 int streak = ok ? 0 : Interlocked.Increment(ref statusFailStreak);
                 bool showDisconnected = !ok && streak >= 2;
@@ -745,10 +755,17 @@ namespace DzbTrainer
             if (need)
             {
                 bool gameRunning = Process.GetProcessesByName("game64").Length > 0 || Process.GetProcessesByName("game").Length > 0;
-                File.WriteAllBytes(target, data);
-                Log("插件已部署: plugin\\tb_bridge.tpm（" + data.Length + " 字节）");
-                if (gameRunning)
-                    Log("提示：游戏正在运行，重启游戏后新插件生效");
+                try
+                {
+                    File.WriteAllBytes(target, data);
+                    Log("插件已部署: plugin\\tb_bridge.tpm（" + data.Length + " 字节）");
+                    if (gameRunning)
+                        Log("提示：游戏正在运行，重启游戏后新插件生效");
+                }
+                catch (Exception ex)
+                {
+                    Log("插件部署失败: " + ex.Message + "（游戏运行中文件被占用；重启游戏后修改器会自动重试部署）");
+                }
             }
         }
 
