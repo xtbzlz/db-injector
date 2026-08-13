@@ -200,6 +200,42 @@ namespace DzbTrainer
                 MakeParam("chara","角色","chara","2"), MakeParam("guy","对象","guy","テオ", GuyJpKeys),
                 MakeParam("num","次数","num","5"), MakeParam("num2","满足","num","5"), MakeParam("num3","高潮","num","1"),
                 MakeParam("acts","体位列表(逗号分隔)","acts","正常位,背面座位")),
+            // ---- 战斗恢复 ----
+            MakeCmd("战斗恢复", "全回复(HP/MP/部分状态)", "{chara}.recovery()",
+                MakeParam("chara","角色","chara")),
+            MakeCmd("战斗恢复", "全员全回复", "(function(){ var n = game.party.members.count; for(var i = 0; i < n; i++) game.party.members[i].recovery(); return n; })()"),
+            MakeCmd("战斗恢复", "回满魔法值", "(function(){ var c = {chara}; c.mmagic.assign(c.mmagicMax); c.pmagic.assign(c.pmagicMax); c.amagic.assign(c.amagicMax); c.smagic.assign(c.smagicMax); return 'ok'; })()",
+                MakeParam("chara","角色","chara")),
+            MakeCmd("战斗恢复", "经验恰好绿字(可升级)", "{chara}.exp = {chara}.getNeedExp({chara}.level + 1)",
+                MakeParam("chara","角色","chara")),
+            MakeCmd("战斗恢复", "设置本次战斗奖励", "(function(){ if(! game.inBattle) return 'notInBattle'; game.curExp = {num}; game.curGold = {num2}; return 'ok'; })()",
+                MakeParam("num","经验","num","1000"), MakeParam("num2","金钱","num","10000")),
+            // ---- 地图 ----
+            MakeCmd("地图", "传送(地图名)", "(function(){ if(game.inBattle) return 'inBattle'; game.changePosition(%[map: \"{map}\", x: {num}, y: {num2}, way: \"{guy}\", stealth: true]); return 'ok'; })()",
+                MakeParam("map","地图","map"), MakeParam("num","x","num","0"), MakeParam("num2","y","num","0"), MakeParam("guy","朝向","guy","n", new string[] { "n", "s", "e", "w" })),
+            MakeCmd("地图", "不遇怪开关(含固定怪)", "game.map.noBattle = {bool}",
+                MakeParam("bool","开启","bool","true")),
+            MakeCmd("地图", "全地图开启+标记已访问", "(function(){ var n = game.mapData.count; for(var i = 0; i < n; i++){ game.mapData[i].showAllArea = true; game.mapData[i].visited = true; } return n; })()"),
+            // ---- 队伍 ----
+            MakeCmd("队伍", "队伍幸运(掉宝率)", "game.party.luck = {num}", MakeParam("num","幸运值","num","50")),
+            // ---- 状态异常 ----
+            MakeCmd("状态异常", "清除异常状态", "{chara}.removeStatus({status})",
+                MakeParam("chara","角色","chara"), MakeParam("status","状态","status","毒")),
+            // ---- 后宫数值 ----
+            MakeCmd("后宫数值", "全员好感100", "(function(){ var n = 0; for(var i = 0; i < game.chara.count; i++){ var c = game.chara[i]; try{ if(c.love === void) continue; c.love.theo = 100; c.love.max = 100; c.love.linus = 100; c.love.blue = 100; c.love.alex = 100; n++; }catch(e){} } return n; })()"),
+            // ---- 技能 ----
+            MakeCmd("技能", "一键学会全部魔法", "(function(){ var n = 0, i, j; var cats = [game.mmagic, game.pmagic, game.amagic, game.smagic]; for(j = 0; j < cats.count; j++){ for(i = 0; i < cats[j].count; i++){ try{ {chara}.learnSkill(cats[j][i]); n++; }catch(e){} } } return n; })()",
+                MakeParam("chara","角色","chara")),
+            MakeCmd("技能", "一键添加全部被动技能", "(function(){ var n = 0, i; for(i = 0; i < game.btcmd.count; i++){ var v = game.btcmd[i]; try{ if(v !== void && [\"passive\",\"cancel\",\"status\"].has(v.category)){ {chara}.learnSkill(v); n++; } }catch(e){} } return n; })()",
+                MakeParam("chara","角色","chara")),
+            MakeCmd("技能", "修复全部损坏装备", "(function(){ var c = {chara}; var n = 0, i; for(i = 0; i < c.bag.count; i++){ if(c.bag[i] !== void && c.bagStat[i] == 6){ c.bagStat[i] = 12; n++; } } var pn = [\"main\",\"sub\",\"chest\",\"waist\",\"arm\",\"leg\",\"bust\",\"hip\",\"finger\",\"pocket\"]; for(i = 0; i < pn.count; i++){ if(c.equipStat[pn[i]] == 6){ c.equipStat[pn[i]] = 12; n++; } } return n; })()",
+                MakeParam("chara","角色","chara")),
+            // ---- 收集 ----
+            MakeCmd("收集", "全物品图鉴解锁", "(function(){ var n = game.items.count; for(var i = 0; i < n; i++){ try{ sf[game.items[i].name] = true; }catch(e){} } return n; })()"),
+            MakeCmd("收集", "全怪物图鉴解锁", "(function(){ var n = 0; for(var i = 0; i < game.monster.count; i++){ try{ sf[game.monster[i].name] = true; n++; }catch(e){} } return n; })()"),
+            MakeCmd("收集", "全奖杯达成", "(function(){ sf.gameCleared = true; sf.clearWithoutHyperBombs = true; sf.walkCount = 50000; sf.gotMaxGold = true; sf.mostLevelOfCharas = 100; sf.numContractedHirings = game.hiring.count; sf.numContractedMonsters = game.smagic.count; sf.completedStarCards = true; sf.numLearnedMagics = game.mmagic.count * 3 + game.smagic.count; sf.rateOfCoveringMaps = 100; sf.numClearedQuests = game.quests.count; sf.numEatenDishes = 30; sf.winCount = 1000; sf.totalMarks = 10000; sf.huntedThreeLordsWithoutHyperBombs = true; sf.huntedEarthDragonWithoutHyperBombs = true; sf.clearAllQuestsWithoutHyperBombs = true; sf.usedJobsByCreating = %[]; for(var i = 0; i < game.job.count; i++) sf.usedJobsByCreating.add(game.job[i].name); for(var j = 0; j < game.items.count; j++){ try{ sf[game.items[j].name] = true; }catch(e){} } for(var k2 = 0; k2 < game.monster.count; k2++){ try{ sf[game.monster[k2].name] = true; }catch(e){} } return 'trophies ok'; })()"),
+            MakeCmd("收集", "一键完成全部已接任务", "(function(){ var n = 0; for(var i = 0; i < game.quests.count; i++){ var q = game.quests[i]; if(q.accepted && ! q.completed){ q.complete(false); n++; } } return n; })()"),
+            MakeCmd("收集", "开启游戏内调试控制台", "(function(){ Debug.console.visible = true; global.underDevelopment = true; return 'console on'; })()"),
         };
 
         static CmdDef MakeCmd(string group, string name, string template, params ParamSpec[] ps)
@@ -261,6 +297,7 @@ namespace DzbTrainer
         Dictionary<string, string> itemJpName = new Dictionary<string, string>();   // id -> 日文标准名(wiki优先,o键兜底)
         Dictionary<string, string> oKeyDisplay = new Dictionary<string, string>();  // o键 -> displayName(中文)
         List<string> oKeys = new List<string>();
+        List<KeyValuePair<string, string>> mapNames = new List<KeyValuePair<string, string>>(); // 地图名 -> 楼层显示名
         int loadingRegistry = 0; // LoadRegistry 防重入标志（Interlocked）
         const int LogMaxItems = 500;      // 日志区最大行数
         const int InitTimeoutSec = 180;   // 初始化连接等待上限（游戏冷启动慢）
@@ -867,6 +904,18 @@ namespace DzbTrainer
                     if (k.Length > 0) newKeyDisplay[k] = v;
                 }
             }
+            // 地图枚举（game.mapData 数组：name=地图名，insideName=楼层显示名）
+            var newMaps = new List<KeyValuePair<string, string>>();
+            {
+                string md = EvalSafe("(function(){ var r=''; for(var i=0;i<game.mapData.count;i++){ var v=game.mapData[i]; r += v.name + '\\t' + (v.insideName !== void ? v.insideName : '') + '\\n'; } return r; })()");
+                foreach (var line in md.Split('\n'))
+                {
+                    var t = line.Split('\t');
+                    if (t.Length < 1 || t[0].Trim().Length == 0) continue;
+                    string nm = t.Length > 1 ? t[1].Trim() : "";
+                    newMaps.Add(new KeyValuePair<string, string>(t[0].Trim(), nm));
+                }
+            }
 
             // 一次性交换引用（原子），UI 线程读取始终为完整快照
             listNames = newNames;
@@ -874,6 +923,7 @@ namespace DzbTrainer
             itemJpName = newItemJp;
             oKeyDisplay = newKeyDisplay;
             oKeys = newOKeys;
+            mapNames = newMaps;
             CmdLib.CharaNames = newCharaNames;
 
             Dispatcher.Invoke(new Action(() =>
@@ -1008,6 +1058,7 @@ namespace DzbTrainer
                     case "chara": ctl = MakeCharaCombo(p.Def); break;
                     case "o": ctl = MakeOCombo(p.Options, p.Def); break;
                     case "item": ctl = MakeItemCombo(p.Def); break;
+                    case "map": ctl = MakeMapCombo(p.Def); break;
                     case "skill": ctl = MakeKeyCombo(SkillsFromRegistry(), p.Def); break;
                     case "magic": ctl = MakeMagicCombo(p.Def); break;
                     case "status": ctl = MakeKeyCombo(StatusesFromRegistry(), p.Def); break;
@@ -1115,6 +1166,18 @@ namespace DzbTrainer
                 cb.Items.Add(new ComboItem("[" + kv.Key + "] " + kv.Value, kv.Key.ToString()));
             }
             if (cb.Items.Count > 0) cb.SelectedIndex = 0;
+            return cb;
+        }
+
+        ComboBox MakeMapCombo(string defKey)
+        {
+            var cb = MakeCombo(340);
+            foreach (var kv in mapNames)
+                cb.Items.Add(new ComboItem(kv.Value.Length > 0 ? kv.Value + "（" + kv.Key + "）" : kv.Key, kv.Key));
+            int sel = 0;
+            for (int i = 0; i < mapNames.Count; i++)
+                if (mapNames[i].Key == defKey) sel = i;
+            if (cb.Items.Count > 0) cb.SelectedIndex = Math.Min(sel, cb.Items.Count - 1);
             return cb;
         }
 
