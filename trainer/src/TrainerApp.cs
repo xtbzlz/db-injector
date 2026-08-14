@@ -1430,7 +1430,7 @@ namespace DzbTrainer
         FrameworkElement BuildMaintPage()
         {
             var sv = Page();
-            var grid = new Grid();
+            var grid = new Grid { Margin = new Thickness(12) };
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             sv.Content = grid;
