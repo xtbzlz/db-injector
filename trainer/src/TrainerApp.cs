@@ -87,23 +87,12 @@ namespace DzbTrainer
 
         static readonly string[] Guys = { "theo", "max", "linus", "blue", "alex" };
         static readonly string[] GuyJpKeys = { "テオ", "マックス", "ライナス", "ブルー", "アレックス", "どこかの男" };
-        // 立绘状态候选全集（超集）。实际合法值依角色而定，运行时由 QueryValidStrips 按角色过滤：
-        // 女主(CharaObject)= model.dressInfo 键 ∪ o 通用立绘键；次要人物(GuestObject)= 自身 dressInfo 键。
+        // 立绘状态候选值：游戏脚本实际写入 strip 的合法值全集（女主 11 + 客人 8 的并集）。
+        // 运行时由 QueryValidStrips 按角色类型过滤：女主走 model.dressInfo ∪ o 通用立绘字典(排除物品对象/大图)，
+        // 客人走自身 dressInfo 键。其余 o 立绘键(・大=大图 / 勃起=男性 / パイズリ・服めくり=事件镜头)不入候选，避免拼接错误。
         public static readonly string[] StripCandidates = {
-            "通常", "通常・大", "通常・大・上げ",
-            "下着", "パンツ", "パンツ・幸せ", "裸", "裸・幸せ", "裸・不満", "裸・恥辱", "裸・大", "裸・大・手ブラ",
-            "汗だく", "汗だく・大", "汗だく・開き", "汗だく・勃起", "妊娠", "ボテ腹",
-            "戦闘", "水着", "バスタオル", "バスタオル・大", "バスタオル・はだけ", "バスタオル・はだけ・大", "バスタオル・はだけ・手ブラ", "バスタオル＆汗だく", "バスタオル＆汗だく・勃起", "バスタオル・勃起", "上半身裸",
-            "勃起", "裸・勃起", "下着・勃起", "上半身裸・勃起", "下半身裸", "下半身裸・勃起", "下半身裸・射精",
-            "股隠し", "股隠し・汗だく", "裸・胸押しつけ", "穴あき鎧・妊娠", "穴あき鎧・ボテ腹", "穴あき鎧・手ブラ", "穴あき鎧・つまみ",
-            "ローブ・大", "ローブ・後ろ手", "タンクトップ", "タンクトップ・大", "タンクトップ・太り", "タンクトップ・太り・大", "寝室のキャミソール・大",
-            "パイズリ", "パイズリ・射精", "パイズリ・精子", "パイズリ・大", "パイズリ・射精・大", "パイズリ・精子・大",
-            "後ろ手", "ブラウス・後ろ手", "下着・後ろ手", "上半身裸・後ろ手", "裸・後ろ手", "ブラ＆スカート", "上半身裸＆スカート",
-            "タオル＆スカート", "タオル＆ブラ＆スカート", "タオル＆パンツ", "タオル＆裸",
-            "エルフの服めくり＆裸", "エルフの服めくり＆貞操帯", "特製ビキニ鎧", "サハギンの鎧", "サハギンの鎧・下",
-            "強化レオタード", "強化レオタード・破け", "強化レオタード・手ブラ", "最強レオタード", "最強レオタード・食い込み",
-            "スカートとブラのみ", "ビキニ", "ビキニ・大", "腕広げ", "下着・腕広げ", "裸・腕広げ", "裸・腕上げ", "裸・腕上げ・勃起",
-            "帯刀", "腕上げ・大", "発光", "触り", "つまみ", "暗闇", "武装", "灰色"
+            "通常", "下着", "パンツ", "パンツ・幸せ", "裸", "裸・幸せ", "裸・不満", "裸・恥辱", "汗だく", "妊娠", "ボテ腹",
+            "戦闘", "水着", "バスタオル", "上半身裸"
         };
         static readonly string[] EquipLifeOpts = { "24", "12", "0", "96", "97", "98", "99", "100" };
         public static readonly string[] Statuses = { "麻痺", "毒", "猛毒", "睡眠", "混乱", "魅了", "呪い", "石化", "恐怖", "沉默", "衰弱", "疫病" };
@@ -1432,7 +1421,7 @@ namespace DzbTrainer
         string[] QueryValidStrips(string oKey)
         {
             var ks = string.Join(",", CmdLib.StripCandidates.Select(s => "\"" + s + "\""));
-            var expr = "(function(){ var c = o." + oKey + "; var isGuest = false; try { isGuest = c instanceof \"GuestObject\"; } catch(e){} var ks = [" + ks + "]; var r = []; for(var i = 0; i < ks.count; i++){ var k = ks[i]; var ok = false; try { if(isGuest){ ok = c.dressInfo[k] !== void; } else { ok = (c.model.dressInfo[k] !== void) || (o[k] !== void && (o[k].img !== void || o[k].clothes !== void)); } } catch(e){} if(ok) r.add(k); } return r.join('\\t'); })()";
+            var expr = "(function(){ var c = o." + oKey + "; var isGuest = false; try { isGuest = c instanceof \"GuestObject\"; } catch(e){} var ks = [" + ks + "]; var r = []; for(var i = 0; i < ks.count; i++){ var k = ks[i]; var ok = false; try { if(isGuest){ ok = c.dressInfo[k] !== void; } else { var m = c.model.dressInfo[k]; if(m !== void){ ok = !m.large; } else { var sp = o[k]; if(sp !== void && !(sp instanceof \"ItemObject\")){ ok = (sp.img !== void || sp.clothes !== void) && !sp.large; } } } } catch(e){} if(ok) r.add(k); } return r.join('\\t'); })()";
             var res = EvalSafe(expr);
             if (string.IsNullOrEmpty(res)) return new string[] { "通常" };
             return res.Split('\t').Select(s => s.Trim()).Where(s => s.Length > 0).Distinct().ToArray();
