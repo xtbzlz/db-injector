@@ -154,12 +154,8 @@ namespace DzbTrainer
             MakeCmd("结婚", "与角色结婚(不触发主线)", "(function(){ var w = {o}; game.wife = w; w.married = true; w.events.assign([13,17,14,15,16,30,50,70]); game.curChara = w; return w.name; })()",
                 MakeParam("o","角色o键","o","サンドラ")),
             // ---- 队伍 ----
-            MakeCmd("队伍", "加入主力(主角テオ)", "(function(){ if(game.inBattle) return 'inBattle'; var c = {o}; if(game.party.members.has(c)) return 'alreadyIn'; var g = o.王立ギルド; if(g.members.has(c)) g.removeMember(c); game.party.entry(c); return 'ok'; })()",
+            MakeCmd("队伍", "加入主力", "(function(){ if(game.inBattle) return 'inBattle'; var c = {o}; if(game.party.members.has(c)) return 'alreadyIn'; var g = o.王立ギルド; if(g.members.has(c)) g.removeMember(c); game.party.entry(c); return 'ok'; })()",
                 MakeParam("o","成员","o","テオ", PartyKeys)),
-            MakeCmd("队伍", "加入主力(基友マックス)", "(function(){ if(game.inBattle) return 'inBattle'; var c = {o}; if(game.party.members.has(c)) return 'alreadyIn'; var g = o.王立ギルド; if(g.members.has(c)) g.removeMember(c); game.party.entry(c); return 'ok'; })()",
-                MakeParam("o","成员","o","マックス", PartyKeys)),
-            MakeCmd("队伍", "加入主力(洁丽尔リーゼル)", "(function(){ if(game.inBattle) return 'inBattle'; var c = {o}; if(game.party.members.has(c)) return 'alreadyIn'; var g = o.王立ギルド; if(g.members.has(c)) g.removeMember(c); game.party.entry(c); return 'ok'; })()",
-                MakeParam("o","成员","o","リーゼル", PartyKeys)),
             MakeCmd("队伍", "移除主力成员", "(function(){ var c = {o}; if(game.inBattle) return 'inBattle'; if(c.regular && ! c.semiRegular) return 'regularBlocked'; if(game.wife !== void && game.wife.model == c.model) return 'wifeBlocked'; if(game.party.members.has(c)) game.party.removeMember(c); return 'ok'; })()",
                 MakeParam("o","成员","o","マックス", PartyKeys)),
             MakeCmd("队伍", "加入支援队伍(右侧)", "(function(){ if(game.inBattle) return 'inBattle'; var c = {o}; if(! game.guest.members.has(c)) game.guest.entry(c); return 'ok'; })()",
