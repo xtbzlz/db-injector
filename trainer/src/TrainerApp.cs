@@ -87,7 +87,24 @@ namespace DzbTrainer
 
         static readonly string[] Guys = { "theo", "max", "linus", "blue", "alex" };
         static readonly string[] GuyJpKeys = { "テオ", "マックス", "ライナス", "ブルー", "アレックス", "どこかの男" };
-        static readonly string[] Strips = { "通常", "下着", "パンツ", "裸・幸せ", "裸・不満", "裸・恥辱", "汗だく", "妊娠", "ボテ腹", "水着", "バスタオル", "上半身裸", "裸", "戦闘" };
+        // 立绘状态候选全集（超集）。实际合法值依角色而定，运行时由 QueryValidStrips 按角色过滤：
+        // 女主(CharaObject)= model.dressInfo 键 ∪ o 通用立绘键；次要人物(GuestObject)= 自身 dressInfo 键。
+        public static readonly string[] StripCandidates = {
+            "通常", "通常・大", "通常・大・上げ",
+            "下着", "パンツ", "パンツ・幸せ", "裸", "裸・幸せ", "裸・不満", "裸・恥辱", "裸・大", "裸・大・手ブラ",
+            "汗だく", "汗だく・大", "汗だく・開き", "汗だく・勃起", "妊娠", "ボテ腹",
+            "戦闘", "水着", "バスタオル", "バスタオル・大", "バスタオル・はだけ", "バスタオル・はだけ・大", "バスタオル・はだけ・手ブラ", "バスタオル＆汗だく", "バスタオル＆汗だく・勃起", "バスタオル・勃起", "上半身裸",
+            "勃起", "裸・勃起", "下着・勃起", "上半身裸・勃起", "下半身裸", "下半身裸・勃起", "下半身裸・射精",
+            "股隠し", "股隠し・汗だく", "裸・胸押しつけ", "穴あき鎧・妊娠", "穴あき鎧・ボテ腹", "穴あき鎧・手ブラ", "穴あき鎧・つまみ",
+            "ローブ・大", "ローブ・後ろ手", "タンクトップ", "タンクトップ・大", "タンクトップ・太り", "タンクトップ・太り・大", "寝室のキャミソール・大",
+            "パイズリ", "パイズリ・射精", "パイズリ・精子", "パイズリ・大", "パイズリ・射精・大", "パイズリ・精子・大",
+            "後ろ手", "ブラウス・後ろ手", "下着・後ろ手", "上半身裸・後ろ手", "裸・後ろ手", "ブラ＆スカート", "上半身裸＆スカート",
+            "タオル＆スカート", "タオル＆ブラ＆スカート", "タオル＆パンツ", "タオル＆裸",
+            "エルフの服めくり＆裸", "エルフの服めくり＆貞操帯", "特製ビキニ鎧", "サハギンの鎧", "サハギンの鎧・下",
+            "強化レオタード", "強化レオタード・破け", "強化レオタード・手ブラ", "最強レオタード", "最強レオタード・食い込み",
+            "スカートとブラのみ", "ビキニ", "ビキニ・大", "腕広げ", "下着・腕広げ", "裸・腕広げ", "裸・腕上げ", "裸・腕上げ・勃起",
+            "帯刀", "腕上げ・大", "発光", "触り", "つまみ", "暗闇", "武装", "灰色"
+        };
         static readonly string[] EquipLifeOpts = { "24", "12", "0", "96", "97", "98", "99", "100" };
         public static readonly string[] Statuses = { "麻痺", "毒", "猛毒", "睡眠", "混乱", "魅了", "呪い", "石化", "恐怖", "沉默", "衰弱", "疫病" };
         public static readonly string[] Skills = { "偵察", "反撃", "格闘", "聖拳", "回避", "鑑定", "修理", "探索", "警戒", "習得", "契約", "憑依術", "浄化", "全員かばう", "擊倒" };
@@ -97,7 +114,7 @@ namespace DzbTrainer
         // 支援角色（GuestObject，无背包，guest.entry 有效）
         public static readonly string[] GuestKeys = { "ポラリス", "サンドラ", "マリア", "ブルー", "ライナス", "ミレディ" };
         // o 引用角色名单（键=日文标识符, 显示名中文）
-        public static readonly string[] ORoleKeys = { "テオ", "マックス", "ブルー", "リーゼル", "サンドラ", "マリア", "ポラリス", "リム", "クレア", "フレデリカ", "ミューズ", "マルエット", "linus", "alex" };
+        public static readonly string[] ORoleKeys = { "テオ", "マックス", "ブルー", "リーゼル", "サンドラ", "マリア", "ポラリス", "リム", "クレア", "フレデリカ", "ミューズ", "マルエット", "ライナス", "アレックス" };
 
         public static CmdDef[] All = new CmdDef[] {
             // ---- 等级经验 ----
@@ -173,7 +190,7 @@ namespace DzbTrainer
             MakeCmd("后宫数值", "性爱次数", "{o}.sexCount.{guy} = {num}",
                 MakeParam("o","角色","o","サンドラ"), MakeParam("guy","对象","guy","theo", Guys), MakeParam("num","次数","num","10")),
             MakeCmd("后宫数值", "立绘状态", "{o}.strip.{guy} = {strip}",
-                MakeParam("o","角色","o","サンドラ"), MakeParam("guy","对象","guy","theo", Guys), MakeParam("strip","立绘","strip","裸・幸せ", Strips)),
+                MakeParam("o","角色","o","サンドラ"), MakeParam("guy","对象","guy","theo", Guys), MakeParam("strip","立绘","strip","通常", StripCandidates)),
             MakeCmd("后宫数值", "开发度", "{o}.develop.{guy} = {num}",
                 MakeParam("o","角色","o","サンドラ"), MakeParam("guy","对象","guy","theo", Guys), MakeParam("num","数值","num","100")),
             MakeCmd("后宫数值", "警戒度", "{o}.guard.{guy} = {num}",
@@ -275,16 +292,27 @@ namespace DzbTrainer
     // ============================================================
     public class MainWindow : Window
     {
-        static readonly Brush BgMain = MakeBrush("#1E1E2E");
-        static readonly Brush BgPanel = MakeBrush("#2A2A3E");
-        static readonly Brush BgInput = MakeBrush("#232334");
-        static readonly Brush BgActive = MakeBrush("#4A4A68");
-        static readonly Brush BorderC = MakeBrush("#4A4A68");
-        static readonly Brush Accent = MakeBrush("#7C5CFF");
-        static readonly Brush TextMain = MakeBrush("#E8E8F0");
-        static readonly Brush TextDim = MakeBrush("#9A9AB0");
-        static readonly Brush OkGreen = MakeBrush("#4CAF50");
-        static readonly Brush ErrRed = MakeBrush("#E05C5C");
+        // XAML 模板注入色与对应 Brush 共用同一 hex 常量（单一数据源）
+        const string HexInput = "#121C1E";
+        const string HexBorder = "#34484D";
+        const string HexDim = "#A9BEC0";
+        static readonly Brush BgMain = MakeBrush("#111516");
+        static readonly Brush BgPanel = MakeBrush("#192326");
+        static readonly Brush BgRaised = MakeBrush("#213034");
+        static readonly Brush BgInput = MakeBrush(HexInput);
+        static readonly Brush BgHover = MakeBrush("#26373B");
+        static readonly Brush BgSelected = MakeBrush("#164D53");
+        static readonly Brush Accent = MakeBrush("#2AC7C9");
+        static readonly Brush AccentHover = MakeBrush("#54DCDA");
+        static readonly Brush BorderC = MakeBrush(HexBorder);
+        static readonly Brush BorderFocus = MakeBrush("#2AC7C9");
+        static readonly Brush TextMain = MakeBrush("#EDF6F4");
+        static readonly Brush TextDim = MakeBrush(HexDim);
+        static readonly Brush TextMuted = MakeBrush("#72898C");
+        static readonly Brush TextOnAccent = MakeBrush("#061B1D");
+        static readonly Brush OkGreen = MakeBrush("#52C985");
+        static readonly Brush WarnAmber = MakeBrush("#E4B458");
+        static readonly Brush ErrRed = MakeBrush("#E26B70");
 
         static Brush MakeBrush(string hex) { return new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex)); }
 
@@ -382,7 +410,9 @@ namespace DzbTrainer
 
         TextBox MakeInput(string text = "", double width = 140)
         {
-            return new TextBox { Text = text, Width = width, Padding = new Thickness(4), Background = BgInput, Foreground = TextMain, BorderBrush = BorderC, BorderThickness = new Thickness(1), FontSize = 12 };
+            var t = new TextBox { Text = text, Width = width, Padding = new Thickness(4), BorderThickness = new Thickness(1), FontSize = 12 };
+            t.Style = InputStyle();
+            return t;
         }
 
         static ControlTemplate comboDarkTemplate;
@@ -422,14 +452,77 @@ namespace DzbTrainer
                 "  </Popup>" +
                 "</Grid></ControlTemplate>";
             string filled = xaml
-                .Replace("{C_INPUT}", "#232334")
-                .Replace("{C_BORDER}", "#4A4A68")
-                .Replace("{C_DIM}", "#9A9AB0");
+                .Replace("{C_INPUT}", HexInput)
+                .Replace("{C_BORDER}", HexBorder)
+                .Replace("{C_DIM}", HexDim);
             comboDarkTemplate = (ControlTemplate)System.Windows.Markup.XamlReader.Parse(filled);
             return comboDarkTemplate;
         }
 
         static Style listItemStyle;
+
+        static Style inputStyle;
+        static Style InputStyle()
+        {
+            if (inputStyle != null) return inputStyle;
+            var st = new Style(typeof(TextBox));
+            st.Setters.Add(new Setter(Control.BackgroundProperty, BgInput));
+            st.Setters.Add(new Setter(Control.ForegroundProperty, TextMain));
+            st.Setters.Add(new Setter(Control.BorderBrushProperty, BorderC));
+            var f = new Trigger { Property = UIElement.IsKeyboardFocusedProperty, Value = true };
+            f.Setters.Add(new Setter(Control.BorderBrushProperty, BorderFocus));
+            st.Triggers.Add(f);
+            inputStyle = st;
+            return st;
+        }
+
+        static Style secondaryBtnStyle;
+        static Style SecondaryButtonStyle()
+        {
+            if (secondaryBtnStyle != null) return secondaryBtnStyle;
+            var st = new Style(typeof(Button));
+            st.Setters.Add(new Setter(Control.BackgroundProperty, BgPanel));
+            var h = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
+            h.Setters.Add(new Setter(Control.BackgroundProperty, BgHover));
+            st.Triggers.Add(h);
+            secondaryBtnStyle = st;
+            return st;
+        }
+
+        static Style primaryBtnStyle;
+        static Style PrimaryButtonStyle()
+        {
+            if (primaryBtnStyle != null) return primaryBtnStyle;
+            var st = new Style(typeof(Button));
+            st.Setters.Add(new Setter(Control.BackgroundProperty, BgSelected));
+            st.Setters.Add(new Setter(Control.ForegroundProperty, TextMain));
+            var h = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
+            h.Setters.Add(new Setter(Control.BackgroundProperty, Accent));
+            h.Setters.Add(new Setter(Control.ForegroundProperty, TextOnAccent));
+            st.Triggers.Add(h);
+            var p = new Trigger { Property = Button.IsPressedProperty, Value = true };
+            p.Setters.Add(new Setter(Control.BackgroundProperty, AccentHover));
+            p.Setters.Add(new Setter(Control.ForegroundProperty, TextOnAccent));
+            st.Triggers.Add(p);
+            primaryBtnStyle = st;
+            return st;
+        }
+
+        static Style navBtnStyle;
+        static Style NavButtonStyle()
+        {
+            if (navBtnStyle != null) return navBtnStyle;
+            var st = new Style(typeof(Button));
+            st.Setters.Add(new Setter(Control.BackgroundProperty, Brushes.Transparent));
+            st.Setters.Add(new Setter(Control.ForegroundProperty, TextMuted));
+            st.Setters.Add(new Setter(Control.BorderThicknessProperty, new Thickness(0)));
+            var h = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
+            h.Setters.Add(new Setter(Control.BackgroundProperty, BgHover));
+            h.Setters.Add(new Setter(Control.ForegroundProperty, TextMain));
+            st.Triggers.Add(h);
+            navBtnStyle = st;
+            return st;
+        }
 
         static Style ListItemStyle()
         {
@@ -437,13 +530,20 @@ namespace DzbTrainer
             var st = new Style(typeof(ListBoxItem));
             st.Setters.Add(new Setter(ListBoxItem.PaddingProperty, new Thickness(6, 5, 6, 5)));
             st.Setters.Add(new Setter(ListBoxItem.MinHeightProperty, 28.0));
+            var sel = new Trigger { Property = ListBoxItem.IsSelectedProperty, Value = true };
+            sel.Setters.Add(new Setter(Control.BackgroundProperty, BgSelected));
+            sel.Setters.Add(new Setter(Control.ForegroundProperty, TextMain));
+            st.Triggers.Add(sel);
+            var hov = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
+            hov.Setters.Add(new Setter(Control.BackgroundProperty, BgHover));
+            st.Triggers.Add(hov);
             listItemStyle = st;
             return st;
         }
 
         ComboBox MakeCombo(double width = 180)
         {
-            var cb = new ComboBox { Width = width, Padding = new Thickness(2), Background = BgInput, Foreground = TextMain, BorderBrush = BorderC, FontSize = 12 };
+            var cb = new ComboBox { Width = width, Padding = new Thickness(2), Foreground = TextMain, BorderBrush = BorderC, FontSize = 12 };
             cb.Template = ComboDarkTemplate();
             // 下拉列表项深色样式（默认是白底+继承的灰白字，对比度差）
             var st = new Style(typeof(ListBoxItem));
@@ -452,10 +552,10 @@ namespace DzbTrainer
             st.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(4, 2, 4, 2)));
             var trig = new Trigger { Property = ListBoxItem.IsSelectedProperty, Value = true };
             trig.Setters.Add(new Setter(Control.BackgroundProperty, Accent));
-            trig.Setters.Add(new Setter(Control.ForegroundProperty, TextMain));
+            trig.Setters.Add(new Setter(Control.ForegroundProperty, TextOnAccent));
             st.Triggers.Add(trig);
             var hover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
-            hover.Setters.Add(new Setter(Control.BackgroundProperty, BgActive));
+            hover.Setters.Add(new Setter(Control.BackgroundProperty, BgHover));
             st.Triggers.Add(hover);
             cb.ItemContainerStyle = st;
             return cb;
@@ -463,14 +563,16 @@ namespace DzbTrainer
 
         Button TopButton(string text, Action onClick)
         {
-            var b = new Button { Content = text, Height = 30, MinWidth = 80, Padding = new Thickness(12, 4, 12, 4), Background = BgPanel, Foreground = TextMain, BorderBrush = BorderC, BorderThickness = new Thickness(1), FontSize = 12, VerticalContentAlignment = VerticalAlignment.Center, Cursor = System.Windows.Input.Cursors.Hand };
+            var b = new Button { Content = text, Height = 30, MinWidth = 80, Padding = new Thickness(12, 4, 12, 4), Foreground = TextMain, BorderBrush = BorderC, BorderThickness = new Thickness(1), FontSize = 12, VerticalContentAlignment = VerticalAlignment.Center, Cursor = System.Windows.Input.Cursors.Hand };
+            b.Style = SecondaryButtonStyle();
             b.Click += (s, e) => onClick();
             return b;
         }
 
         Button FlatButton(string text, Action onClick)
         {
-            var b = new Button { Content = text, Height = 30, MinWidth = 80, Padding = new Thickness(12, 4, 12, 4), Background = BgActive, Foreground = TextMain, BorderBrush = BorderC, BorderThickness = new Thickness(1), FontSize = 12, VerticalContentAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 4, 6, 4), Cursor = System.Windows.Input.Cursors.Hand };
+            var b = new Button { Content = text, Height = 30, MinWidth = 80, Padding = new Thickness(12, 4, 12, 4), BorderBrush = BorderC, BorderThickness = new Thickness(1), FontSize = 12, VerticalContentAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 4, 6, 4), Cursor = System.Windows.Input.Cursors.Hand };
+            b.Style = PrimaryButtonStyle();
             b.Click += (s, e) => onClick();
             return b;
         }
@@ -485,16 +587,14 @@ namespace DzbTrainer
                 MinWidth = 76,
                 Margin = new Thickness(0, 4, 6, 4),
                 HorizontalAlignment = HorizontalAlignment.Left,
-                Background = Brushes.Transparent,
-                Foreground = TextDim,
                 BorderBrush = BorderC,
-                BorderThickness = new Thickness(0),
                 FontSize = 13,
                 HorizontalContentAlignment = HorizontalAlignment.Center,
                 VerticalContentAlignment = VerticalAlignment.Center,
                 Padding = new Thickness(12, 0, 12, 0),
                 Cursor = System.Windows.Input.Cursors.Hand
             };
+            b.Style = NavButtonStyle();
             b.Click += (s, e) => ShowPage(name);
             nav.Children.Add(b);
             navButtons.Add(b);
@@ -562,9 +662,19 @@ namespace DzbTrainer
             foreach (var b in navButtons)
             {
                 bool sel = (string)b.Tag == name;
-                b.Background = sel ? BgActive : Brushes.Transparent;
-                b.Foreground = sel ? TextMain : TextDim;
-                b.BorderThickness = sel ? new Thickness(1) : new Thickness(0);
+                if (sel)
+                {
+                    b.Background = BgSelected;
+                    b.Foreground = TextMain;
+                    b.BorderThickness = new Thickness(1);
+                }
+                else
+                {
+                    // 清除局部值，回退到 NavButtonStyle 的默认(透明/TextMuted)与悬停触发
+                    b.ClearValue(Button.BackgroundProperty);
+                    b.ClearValue(Button.ForegroundProperty);
+                    b.ClearValue(Button.BorderThicknessProperty);
+                }
             }
             foreach (FrameworkElement f in pageHost.Children)
                 f.Visibility = Visibility.Collapsed;
@@ -1000,7 +1110,8 @@ namespace DzbTrainer
             pvLabel.Margin = new Thickness(0, 8, 0, 0);
             Grid.SetRow(pvLabel, 1);
             fGrid.Children.Add(pvLabel);
-            previewBox = new TextBox { IsReadOnly = true, TextWrapping = TextWrapping.Wrap, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Background = BgInput, Foreground = TextMain, BorderBrush = BorderC, BorderThickness = new Thickness(1), FontSize = 12, Margin = new Thickness(0, 2, 0, 0), Padding = new Thickness(6, 4, 6, 4), MinHeight = 60 };
+            previewBox = new TextBox { IsReadOnly = true, TextWrapping = TextWrapping.Wrap, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, BorderThickness = new Thickness(1), FontSize = 12, Margin = new Thickness(0, 2, 0, 0), Padding = new Thickness(6, 4, 6, 4), MinHeight = 60 };
+            previewBox.Style = InputStyle();
             Grid.SetRow(previewBox, 2);
             fGrid.Children.Add(previewBox);
             runButton = FlatButton("执行", () => RunSelectedCmd());
@@ -1083,7 +1194,7 @@ namespace DzbTrainer
                         note = "（9 元素数组）";
                         break;
                     case "bool": ctl = MakeBoolCombo(p.Def); break;
-                    case "strip": ctl = MakeStripCombo(p.Options, p.Def); break;
+                    case "strip": ctl = MakeStripCombo(new string[] { "通常" }, "通常"); break;
                     case "guy": ctl = MakeGuyCombo(p.Options, p.Def); break;
                     case "acts": ctl = MakeInput(p.Def, 260); break;
                 }
@@ -1135,6 +1246,17 @@ namespace DzbTrainer
             {
                 if (c is TextBox) ((TextBox)c).TextChanged += (s, e) => UpdatePreview();
                 else if (c is ComboBox) ((ComboBox)c).SelectionChanged += (s, e) => UpdatePreview();
+            }
+            // 立绘状态动态选项：角色变化时按该角色支持的立绘状态过滤下拉
+            Control oCtl, sCtl;
+            if (paramControls.TryGetValue("o", out oCtl) && paramControls.TryGetValue("strip", out sCtl))
+            {
+                var ocb = oCtl as ComboBox;
+                if (ocb != null)
+                {
+                    ocb.SelectionChanged += (s, e) => RefreshStripOptions();
+                    RefreshStripOptions();
+                }
             }
             UpdatePreview();
         }
@@ -1279,6 +1401,47 @@ namespace DzbTrainer
             return MakeFixedCombo(opts, def, false);
         }
 
+        // 立绘状态：按所选角色查询其支持的立绘状态并重建下拉（女主走 model.dressInfo ∪ o 通用立绘，
+        // 次要人物走自身 dressInfo，避免把非法值写入导致打开立绘界面时游戏报错退出）
+        void RefreshStripOptions()
+        {
+            Control oc, sc;
+            if (!paramControls.TryGetValue("o", out oc) || !paramControls.TryGetValue("strip", out sc)) return;
+            string oKey = GetVal("o");
+            var combo = sc as ComboBox;
+            if (combo == null || string.IsNullOrEmpty(oKey)) return;
+            BackgroundLoad(() =>
+            {
+                try
+                {
+                    var keys = QueryValidStrips(oKey);
+                    Dispatcher.Invoke(new Action(() =>
+                    {
+                        string prev = null;
+                        var cur = combo.SelectedItem as ComboItem;
+                        if (cur != null) prev = cur.Val;
+                        combo.Items.Clear();
+                        foreach (var k in keys) combo.Items.Add(new ComboItem(k, "\"" + k + "\""));
+                        int sel = 0;
+                        for (int i = 0; i < combo.Items.Count; i++)
+                            if (((ComboItem)combo.Items[i]).Val == prev) { sel = i; break; }
+                        if (combo.Items.Count > 0) combo.SelectedIndex = sel;
+                        UpdatePreview();
+                    }));
+                }
+                catch (Exception ex) { Log("立绘状态读取失败: " + ex.Message); }
+            });
+        }
+
+        string[] QueryValidStrips(string oKey)
+        {
+            var ks = string.Join(",", CmdLib.StripCandidates.Select(s => "\"" + s + "\""));
+            var expr = "(function(){ var c = o." + oKey + "; var isGuest = false; try { isGuest = c instanceof \"GuestObject\"; } catch(e){} var ks = [" + ks + "]; var r = []; for(var i = 0; i < ks.count; i++){ var k = ks[i]; var ok = false; try { if(isGuest){ ok = c.dressInfo[k] !== void; } else { ok = (c.model.dressInfo[k] !== void) || (o[k] !== void && (o[k].img !== void || o[k].clothes !== void)); } } catch(e){} if(ok) r.add(k); } return r.join('\\t'); })()";
+            var res = EvalSafe(expr);
+            if (string.IsNullOrEmpty(res)) return new string[] { "通常" };
+            return res.Split('\t').Select(s => s.Trim()).Where(s => s.Length > 0).Distinct().ToArray();
+        }
+
         string[] SkillsFromRegistry()
         {
             // 单一数据源；displayName 探测对不存在的键有 try/catch 保护，始终返回全量
@@ -1387,14 +1550,15 @@ namespace DzbTrainer
             consoleInput.Height = 30;
             consoleInput.VerticalAlignment = VerticalAlignment.Center;
             consoleInput.KeyDown += (s, e) => { if (e.Key == System.Windows.Input.Key.Enter) RunConsole(); };
-            var execBtn = new Button { Content = "执行", Height = 30, MinWidth = 80, Padding = new Thickness(12, 4, 12, 4), Background = BgActive, Foreground = TextMain, BorderBrush = BorderC, BorderThickness = new Thickness(1), FontSize = 12, VerticalContentAlignment = VerticalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(6, 0, 0, 0), Cursor = System.Windows.Input.Cursors.Hand };
+            var execBtn = new Button { Content = "执行", Height = 30, MinWidth = 80, Padding = new Thickness(12, 4, 12, 4), BorderBrush = BorderC, BorderThickness = new Thickness(1), FontSize = 12, VerticalContentAlignment = VerticalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(6, 0, 0, 0), Cursor = System.Windows.Input.Cursors.Hand };
+            execBtn.Style = PrimaryButtonStyle();
             execBtn.Click += (s, e) => RunConsole();
             row.Children.Add(consoleInput);
             row.Children.Add(execBtn);
             c1.Children.Add(row);
             Grid.SetRow(c1, 0);
             grid.Children.Add(c1);
-            var c2 = new Grid { Background = BgPanel, Margin = new Thickness(0, 0, 0, 10) };
+            var c2 = new Grid { Background = BgRaised, Margin = new Thickness(0, 0, 0, 10) };
             c2.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             c2.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
             c2.Children.Add(Lbl("执行历史", true, 11));
