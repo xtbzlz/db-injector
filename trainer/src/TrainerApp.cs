@@ -810,7 +810,7 @@ namespace DzbTrainer
             }
             if (data == null || data.Length == 0) { Log("插件资源缺失（内置与外部均未找到）"); return; }
 
-            bool need = !File.Exists(target) || new FileInfo(target).Length != data.Length;
+            bool need = !File.Exists(target) || !data.SequenceEqual(File.ReadAllBytes(target));
             if (need)
             {
                 bool gameRunning = Process.GetProcessesByName("game64").Length > 0 || Process.GetProcessesByName("game").Length > 0;
@@ -1084,7 +1084,6 @@ namespace DzbTrainer
                         break;
                     case "bool": ctl = MakeBoolCombo(p.Def); break;
                     case "strip": ctl = MakeStripCombo(p.Options, p.Def); break;
-                    case "preg": ctl = MakeKeyCombo(new string[] { "NO_PREGNANCY" }, p.Def, true); break;
                     case "guy": ctl = MakeGuyCombo(p.Options, p.Def); break;
                     case "acts": ctl = MakeInput(p.Def, 260); break;
                 }
@@ -1321,7 +1320,6 @@ namespace DzbTrainer
                     case "magic": t = t.Replace("{" + p.Key + "}", "o." + v); break;
                     case "status": t = t.Replace("{" + p.Key + "}", "o." + v); break;
                     case "strip": t = t.Replace("{" + p.Key + "}", v); break;
-                    case "preg": t = t.Replace("{" + p.Key + "}", v); break;
                     case "guy": t = t.Replace("{" + p.Key + "}", v); break;
                     case "num": t = t.Replace("{" + p.Key + "}", v); break;
                     case "arr9": t = t.Replace("{" + p.Key + "}", v); break;

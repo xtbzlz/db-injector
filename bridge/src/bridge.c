@@ -224,25 +224,6 @@ typedef int (__cdecl *DispatchPropGetFn)(void *self, unsigned long flag,
 typedef int (__cdecl *DispatchEnumMembersFn)(void *self, unsigned long flag,
     void *callback, void *objthis);
 
-static char *readGlobalResult(void)
-{
-    void *g = g_getScriptDispatch();
-    if (!g) return _strdup("(no global)");
-    void **vtbl = *(void ***)g;
-    DispatchPropGetFn propGet = (DispatchPropGetFn)vtbl[4];
-    Variant rv;
-    memset(&rv, 0, sizeof(rv));
-    unsigned long hint = 0;
-    int rc = propGet(g, 0, L"__tbc_result__", &hint, &rv, NULL);
-    if (rc != 0) return _strdup("(propget failed)");
-    if (rv.vt != TVT_STRING || !rv.u.string) return _strdup("(non-string)");
-    VSString *vs = rv.u.string;
-    const wchar_t *dp = vs->LongString ? vs->LongString : vs->ShortString;
-    int n = vs->Length;
-    if (n < 0) n = 0;
-    return utf16ToUtf8(dp, n);
-}
-
 static void doEval(const char *codeUtf8, int codeLen, EvalOutcome *outcome)
 {
     outcome->ok = 0;
