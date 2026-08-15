@@ -112,9 +112,9 @@ Write-Test "顶栏导航(指令/控制台/维护/启动游戏)" (($navNames -con
 $lists = Get-Lists $win
 Write-Test "列表控件>=2" ($lists.Count -ge 2) "count=$($lists.Count)"
 $groupItems = $lists[0].FindAll([System.Windows.Automation.TreeScope]::Children, [System.Windows.Automation.Condition]::TrueCondition)
-Write-Test "分组16项" ($groupItems.Count -eq 16) "count=$($groupItems.Count)"
+Write-Test "分组15项" ($groupItems.Count -eq 15) "count=$($groupItems.Count)"
 $groupNames = @(); foreach ($g in $groupItems) { $groupNames += $g.Current.Name }
-$expGroups = @("等级经验","六维属性","魔法上限","物品","时间","状态异常","结婚","队伍","地图","技能","男主数据","后宫数值","性记录","战斗恢复","收集","MOD")
+$expGroups = @("等级经验","六维属性","魔法上限","物品","时间","状态异常","结婚","队伍","地图","技能","男主数据","后宫数值","性记录","战斗恢复","收集")
 $missing = $expGroups | Where-Object { $groupNames -notcontains $_ }
 Write-Test "分组名称完整" ($missing.Count -eq 0) "missing=$($missing -join ',')"
 

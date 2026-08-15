@@ -238,20 +238,6 @@ namespace DzbTrainer
             MakeCmd("收集", "全奖杯达成", "(function(){ sf.gameCleared = true; sf.clearWithoutHyperBombs = true; sf.walkCount = 50000; sf.gotMaxGold = true; sf.mostLevelOfCharas = 100; sf.numContractedHirings = game.hiring.count; sf.numContractedMonsters = game.smagic.count; sf.completedStarCards = true; sf.numLearnedMagics = game.mmagic.count * 3 + game.smagic.count; sf.rateOfCoveringMaps = 100; sf.numClearedQuests = game.quests.count; sf.numEatenDishes = 30; sf.winCount = 1000; sf.totalMarks = 10000; sf.huntedThreeLordsWithoutHyperBombs = true; sf.huntedEarthDragonWithoutHyperBombs = true; sf.clearAllQuestsWithoutHyperBombs = true; sf.usedJobsByCreating = []; for(var i = 0; i < game.job.count; i++) sf.usedJobsByCreating.add(game.job[i].name); for(var j = 0; j < game.items.count; j++){ try{ sf[game.items[j].name] = true; }catch(e){} } for(var k2 = 0; k2 < game.monster.count; k2++){ try{ sf[game.monster[k2].name] = true; }catch(e){} } return 'trophies ok'; })()"),
             MakeCmd("收集", "一键完成全部已接任务", "(function(){ var n = 0; for(var i = 0; i < game.quests.count; i++){ var q = game.quests[i]; if(q.accepted && ! q.completed){ q.complete(false); n++; } } return n; })()"),
             MakeCmd("收集", "开启游戏内调试功能", "(function(){ try{ Debug.console.visible = true; }catch(e){} global.underDevelopment = true; return 'dev on'; })()"),
-            // ---- MOD(汉化包内置ttmod) ----
-            MakeCmd("MOD", "升级免凹点", "sf.ttmod_BonusPointCheat = {bool}", MakeParam("bool","开启","bool","true")),
-            MakeCmd("MOD", "全职业可鉴定修理(需重启)", "sf.ttmod_JDXL = {bool}", MakeParam("bool","开启","bool","true")),
-            MakeCmd("MOD", "仓库60页", "sf.ttmod_CK = {bool}", MakeParam("bool","开启","bool","true")),
-            MakeCmd("MOD", "召唤物与佣兵共存", "sf.ttmod_Summon = {bool}", MakeParam("bool","开启","bool","true")),
-            MakeCmd("MOD", "男主换兰斯(需patch68+自由模式)", "sf.ttmod_Rance = {bool}", MakeParam("bool","开启","bool","false")),
-            MakeCmd("MOD", "转职保留反击", "sf.ttmod_Fanji = {bool}", MakeParam("bool","开启","bool","true")),
-            MakeCmd("MOD", "转职保留50%经验", "sf.ttmod_ZZJY = {bool}", MakeParam("bool","开启","bool","true")),
-            MakeCmd("MOD", "转职得连住券", "sf.ttmod_ZZLSQ = {bool}", MakeParam("bool","开启","bool","true")),
-            MakeCmd("MOD", "鞋类重量平衡(需重启)", "sf.ttmod_BootWeightRebalance = {bool}", MakeParam("bool","开启","bool","true")),
-            MakeCmd("MOD", "跳过仓库解迷", "sf.ttmod_WarehouseCheat = {bool}", MakeParam("bool","开启","bool","true")),
-            MakeCmd("MOD", "掉宝率加成(10=基础)", "sf.ttmod_RiskyTreasure = {num}", MakeParam("num","加成","num","10", null, "0-50,10为基础值")),
-            MakeCmd("MOD", "敌人HP倍率(10=1倍)", "sf.ttmod_EnemyHealthMult = {num}", MakeParam("num","倍率","num","10", null, "÷10,5=0.5倍,20=2倍")),
-            MakeCmd("MOD", "敌人全属性加成", "sf.ttmod_EnemyBonusStats = {num}", MakeParam("num","加成","num","0", null, "0-100")),
         };
 
         static CmdDef MakeCmd(string group, string name, string template, params ParamSpec[] ps)
