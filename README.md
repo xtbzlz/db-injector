@@ -1,4 +1,4 @@
-# D&B 指令注入器 (bride-injector)
+# D&B 指令注入器 (dungeonAndBride-injector)
 
 ダンジョン＆ブライド（Dungeon & Bride / 地下城与新娘）指令注入器：通过 krkrz 引擎插件（TJS 表达式注入）修改游戏对象与状态，全部指令逐条经游戏源码核实，避免非法值导致游戏报错退出或拼接错误。
 
