@@ -275,6 +275,7 @@ namespace DzbTrainer
         static readonly Brush BgSelected = MakeBrush("#5A4646");
         static readonly Brush Accent = MakeBrush("#785E5E");
         static readonly Brush AccentHover = MakeBrush("#947676");
+        static readonly Brush BtnHover = MakeBrush("#5E7878");
         static readonly Brush BorderC = MakeBrush(HexBorder);
         static readonly Brush BorderFocus = MakeBrush("#785E5E");
         static readonly Brush TextMain = MakeBrush("#EDEDED");
@@ -430,6 +431,61 @@ namespace DzbTrainer
             return comboDarkTemplate;
         }
 
+        // 自定义按钮模板：默认 WPF 模板的 IsMouseOver 触发器（主题浅蓝色）优先级高于样式触发器，
+        // 导致样式里的悬停色从不生效；这里用模板触发器注入真实色值。
+        static ControlTemplate ButtonTemplate(string hoverHex, string pressedHex)
+        {
+            const string xaml =
+                "<ControlTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' TargetType='Button'>" +
+                "<Border x:Name='bd' Background='{TemplateBinding Background}' BorderBrush='{TemplateBinding BorderBrush}'" +
+                "  BorderThickness='{TemplateBinding BorderThickness}' CornerRadius='2' Padding='{TemplateBinding Padding}'>" +
+                "  <ContentPresenter HorizontalAlignment='Center' VerticalAlignment='Center'/>" +
+                "</Border>" +
+                "<ControlTemplate.Triggers>" +
+                "  <Trigger Property='IsMouseOver' Value='True'><Setter TargetName='bd' Property='Background' Value='{C_HOVER}'/></Trigger>" +
+                "  <Trigger Property='IsPressed' Value='True'><Setter TargetName='bd' Property='Background' Value='{C_PRESSED}'/></Trigger>" +
+                "  <Trigger Property='IsEnabled' Value='False'><Setter TargetName='bd' Property='Opacity' Value='0.4'/></Trigger>" +
+                "</ControlTemplate.Triggers>" +
+                "</ControlTemplate>";
+            return (ControlTemplate)System.Windows.Markup.XamlReader.Parse(
+                xaml.Replace("{C_HOVER}", hoverHex).Replace("{C_PRESSED}", pressedHex));
+        }
+
+        // 列表项模板：同上，默认 ListBoxItem 模板的悬停/选中是主题蓝
+        static ControlTemplate ListItemTemplate(string hoverHex, string selHex)
+        {
+            const string xaml =
+                "<ControlTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' TargetType='ListBoxItem'>" +
+                "<Border x:Name='bd' Background='Transparent' CornerRadius='2' Padding='{TemplateBinding Padding}'>" +
+                "  <ContentPresenter VerticalAlignment='Center'/>" +
+                "</Border>" +
+                "<ControlTemplate.Triggers>" +
+                "  <Trigger Property='IsMouseOver' Value='True'><Setter TargetName='bd' Property='Background' Value='{C_HOVER}'/></Trigger>" +
+                "  <Trigger Property='IsSelected' Value='True'><Setter TargetName='bd' Property='Background' Value='{C_SEL}'/></Trigger>" +
+                "</ControlTemplate.Triggers>" +
+                "</ControlTemplate>";
+            return (ControlTemplate)System.Windows.Markup.XamlReader.Parse(
+                xaml.Replace("{C_HOVER}", hoverHex).Replace("{C_SEL}", selHex));
+        }
+
+        // 输入框模板：默认 TextBox 模板的悬停/聚焦边框也是主题蓝
+        static ControlTemplate TextBoxTemplate()
+        {
+            const string xaml =
+                "<ControlTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' TargetType='TextBox'>" +
+                "<Border x:Name='bd' Background='{TemplateBinding Background}' BorderBrush='{TemplateBinding BorderBrush}'" +
+                "  BorderThickness='{TemplateBinding BorderThickness}' CornerRadius='2'>" +
+                "  <ScrollViewer x:Name='PART_ContentHost' Margin='2'/>" +
+                "</Border>" +
+                "<ControlTemplate.Triggers>" +
+                "  <Trigger Property='IsMouseOver' Value='True'><Setter TargetName='bd' Property='BorderBrush' Value='{C_HOVER}'/></Trigger>" +
+                "  <Trigger Property='IsKeyboardFocused' Value='True'><Setter TargetName='bd' Property='BorderBrush' Value='{C_FOCUS}'/></Trigger>" +
+                "</ControlTemplate.Triggers>" +
+                "</ControlTemplate>";
+            return (ControlTemplate)System.Windows.Markup.XamlReader.Parse(
+                xaml.Replace("{C_HOVER}", "#5E7878").Replace("{C_FOCUS}", "#785E5E"));
+        }
+
         static Style listItemStyle;
 
         static Style inputStyle;
@@ -440,6 +496,7 @@ namespace DzbTrainer
             st.Setters.Add(new Setter(Control.BackgroundProperty, BgInput));
             st.Setters.Add(new Setter(Control.ForegroundProperty, TextMain));
             st.Setters.Add(new Setter(Control.BorderBrushProperty, BorderC));
+            st.Setters.Add(new Setter(Control.TemplateProperty, TextBoxTemplate()));
             var f = new Trigger { Property = UIElement.IsKeyboardFocusedProperty, Value = true };
             f.Setters.Add(new Setter(Control.BorderBrushProperty, BorderFocus));
             st.Triggers.Add(f);
@@ -453,6 +510,7 @@ namespace DzbTrainer
             if (secondaryBtnStyle != null) return secondaryBtnStyle;
             var st = new Style(typeof(Button));
             st.Setters.Add(new Setter(Control.BackgroundProperty, BgPanel));
+            st.Setters.Add(new Setter(Control.TemplateProperty, ButtonTemplate("#5E7878", "#3F3F3F")));
             var h = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
             h.Setters.Add(new Setter(Control.BackgroundProperty, BgHover));
             st.Triggers.Add(h);
@@ -467,8 +525,9 @@ namespace DzbTrainer
             var st = new Style(typeof(Button));
             st.Setters.Add(new Setter(Control.BackgroundProperty, BgSelected));
             st.Setters.Add(new Setter(Control.ForegroundProperty, TextMain));
+            st.Setters.Add(new Setter(Control.TemplateProperty, ButtonTemplate("#5E7878", "#947676")));
             var h = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
-            h.Setters.Add(new Setter(Control.BackgroundProperty, Accent));
+            h.Setters.Add(new Setter(Control.BackgroundProperty, BtnHover));
             h.Setters.Add(new Setter(Control.ForegroundProperty, TextOnAccent));
             st.Triggers.Add(h);
             var p = new Trigger { Property = Button.IsPressedProperty, Value = true };
@@ -487,6 +546,7 @@ namespace DzbTrainer
             st.Setters.Add(new Setter(Control.BackgroundProperty, Brushes.Transparent));
             st.Setters.Add(new Setter(Control.ForegroundProperty, TextMuted));
             st.Setters.Add(new Setter(Control.BorderThicknessProperty, new Thickness(0)));
+            st.Setters.Add(new Setter(Control.TemplateProperty, ButtonTemplate("#5E7878", "#3F3F3F")));
             var h = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
             h.Setters.Add(new Setter(Control.BackgroundProperty, BgHover));
             h.Setters.Add(new Setter(Control.ForegroundProperty, TextMain));
@@ -501,6 +561,7 @@ namespace DzbTrainer
             var st = new Style(typeof(ListBoxItem));
             st.Setters.Add(new Setter(ListBoxItem.PaddingProperty, new Thickness(6, 5, 6, 5)));
             st.Setters.Add(new Setter(ListBoxItem.MinHeightProperty, 28.0));
+            st.Setters.Add(new Setter(Control.TemplateProperty, ListItemTemplate("#4A4A4A", "#5A4646")));
             var sel = new Trigger { Property = ListBoxItem.IsSelectedProperty, Value = true };
             sel.Setters.Add(new Setter(Control.BackgroundProperty, BgSelected));
             sel.Setters.Add(new Setter(Control.ForegroundProperty, TextMain));
@@ -521,6 +582,7 @@ namespace DzbTrainer
             st.Setters.Add(new Setter(Control.BackgroundProperty, BgInput));
             st.Setters.Add(new Setter(Control.ForegroundProperty, TextMain));
             st.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(4, 2, 4, 2)));
+            st.Setters.Add(new Setter(Control.TemplateProperty, ListItemTemplate("#4A4A4A", "#785E5E")));
             var trig = new Trigger { Property = ListBoxItem.IsSelectedProperty, Value = true };
             trig.Setters.Add(new Setter(Control.BackgroundProperty, Accent));
             trig.Setters.Add(new Setter(Control.ForegroundProperty, TextOnAccent));
