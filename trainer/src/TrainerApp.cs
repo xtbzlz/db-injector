@@ -705,6 +705,7 @@ namespace DzbTrainer
         }
 
         int statusFailStreak = 0; // 仅经 Interlocked 访问（多后台线程并发）
+        long lastRegAutoTry = 0;  // 注册表自动补载节流（DateTime.UtcNow.Ticks）
 
         void RefreshStatus()
         {
@@ -719,6 +720,18 @@ namespace DzbTrainer
                     if (!gameRunning && !string.IsNullOrEmpty(config.GameDir) && Directory.Exists(config.GameDir))
                     {
                         try { DeployPlugin(Path.Combine(Path.Combine(config.GameDir, "plugin"), "tb_bridge.tpm")); }
+                        catch { }
+                    }
+                }
+                // 连接已恢复但注册表为空：冷启动时过早 LIST（引擎未就绪 "global 'o' not found"）
+                // 或游戏启动期自重启（V2Link 抖动）导致首次加载失败；引擎就绪后自动补载一次（节流 5s）。
+                if (ok && oKeys.Count == 0)
+                {
+                    long now = DateTime.UtcNow.Ticks;
+                    if (now - Interlocked.Read(ref lastRegAutoTry) > TimeSpan.TicksPerSecond * 5)
+                    {
+                        Interlocked.Exchange(ref lastRegAutoTry, now);
+                        try { if (EngineReady()) LoadRegistry(); }
                         catch { }
                     }
                 }
@@ -752,6 +765,20 @@ namespace DzbTrainer
             var r = pipe.Eval(code);
             if (r.StartsWith("ERR")) throw new Exception(r.Substring(4));
             return r;
+        }
+
+        // TJS 引擎是否就绪：PING 只需插件管道线程（V2Link 即就绪），但 LIST/EVAL 需要
+        // 游戏脚本初始化完成（全局 o 注册表、game 对象）。以 game.items.count 数值为就绪标志，
+        // 与 test_ui.ps1 / RefreshStatusInfo 一致，避免冷启动时 "global 'o' not found"。
+        bool EngineReady()
+        {
+            try
+            {
+                string r = pipe.Eval("(function(){ try { return game.items.count; } catch(e){ return -1; } })()");
+                long v;
+                return !r.StartsWith("ERR") && long.TryParse(r.Trim(), out v) && v > 0;
+            }
+            catch { return false; }
         }
 
         // 双语显示：中文（日文）；两者相同则只显示一个
@@ -849,11 +876,11 @@ namespace DzbTrainer
                     Process.Start(exe);
                 }
 
-                // 3. 等待管道连接（最长 180s，游戏冷启动与插件加载可能较慢）
+                // 3. 等待引擎就绪（最长 180s，游戏冷启动与插件加载可能较慢）
                 Log("等待游戏连接…");
                 for (int i = 0; i < InitTimeoutSec; i++)
                 {
-                    if (pipe.Ping() == "PONG")
+                    if (pipe.Ping() == "PONG" && EngineReady())
                     {
                         Log("连接成功");
                         RefreshStatus();
@@ -863,7 +890,7 @@ namespace DzbTrainer
                             statusText.Text = "已连接";
                             statusDot.Foreground = OkGreen;
                         }));
-                        // 连接就绪后加载注册表（冷启动时最初的 LoadRegistry 可能因游戏未就绪失败）
+                        // 引擎就绪后再加载注册表（PING 就绪 ≠ 引擎就绪，冷启动过早 LIST 会 "global 'o' not found"）
                         try { LoadRegistry(); Log("注册表已加载(初始化)"); }
                         catch (Exception lr) { Log("注册表加载失败: " + lr.Message); }
                         return;
