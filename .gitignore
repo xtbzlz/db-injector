@@ -26,3 +26,4 @@ shots_after/
 
 # 参考源码 dump（krkrz 上游可独立获取，2016_* 为脚本提取物）
 ref/
+.omo/
