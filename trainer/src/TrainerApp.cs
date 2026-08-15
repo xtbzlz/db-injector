@@ -278,23 +278,23 @@ namespace DzbTrainer
     public class MainWindow : Window
     {
         // XAML 模板注入色与对应 Brush 共用同一 hex 常量（单一数据源）
-        const string HexInput = "#121C1E";
-        const string HexBorder = "#34484D";
-        const string HexDim = "#A9BEC0";
-        static readonly Brush BgMain = MakeBrush("#111516");
-        static readonly Brush BgPanel = MakeBrush("#192326");
-        static readonly Brush BgRaised = MakeBrush("#213034");
+        const string HexInput = "#2A2A2A";
+        const string HexBorder = "#4E4E4E";
+        const string HexDim = "#B5B5B5";
+        static readonly Brush BgMain = MakeBrush("#333333");
+        static readonly Brush BgPanel = MakeBrush("#3B3B3B");
+        static readonly Brush BgRaised = MakeBrush("#444444");
         static readonly Brush BgInput = MakeBrush(HexInput);
-        static readonly Brush BgHover = MakeBrush("#26373B");
-        static readonly Brush BgSelected = MakeBrush("#164D53");
-        static readonly Brush Accent = MakeBrush("#2AC7C9");
-        static readonly Brush AccentHover = MakeBrush("#54DCDA");
+        static readonly Brush BgHover = MakeBrush("#4A4A4A");
+        static readonly Brush BgSelected = MakeBrush("#5A4646");
+        static readonly Brush Accent = MakeBrush("#785E5E");
+        static readonly Brush AccentHover = MakeBrush("#947676");
         static readonly Brush BorderC = MakeBrush(HexBorder);
-        static readonly Brush BorderFocus = MakeBrush("#2AC7C9");
-        static readonly Brush TextMain = MakeBrush("#EDF6F4");
+        static readonly Brush BorderFocus = MakeBrush("#785E5E");
+        static readonly Brush TextMain = MakeBrush("#EDEDED");
         static readonly Brush TextDim = MakeBrush(HexDim);
-        static readonly Brush TextMuted = MakeBrush("#72898C");
-        static readonly Brush TextOnAccent = MakeBrush("#061B1D");
+        static readonly Brush TextMuted = MakeBrush("#858585");
+        static readonly Brush TextOnAccent = MakeBrush("#F7F1F1");
         static readonly Brush OkGreen = MakeBrush("#52C985");
         static readonly Brush WarnAmber = MakeBrush("#E4B458");
         static readonly Brush ErrRed = MakeBrush("#E26B70");
