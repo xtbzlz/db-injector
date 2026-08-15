@@ -1,4 +1,4 @@
-﻿# test_ui.ps1 — automated UI test for Trainer.exe (重构版：指令拼接器) via UIAutomation.
+﻿# test_ui.ps1 — automated UI test for DXCXN.exe (重构版：指令拼接器) via UIAutomation.
 # Usage: test_ui.ps1 [-Root <repo-root>] [-GameDir <game-dir>]
 param(
     [string]$Root = "C:\Users\1\Desktop\CR\DXCXN",
@@ -8,7 +8,9 @@ $ErrorActionPreference = 'Continue'
 Add-Type -AssemblyName UIAutomationClient
 Add-Type -AssemblyName UIAutomationTypes
 
-$trainer = "$Root\trainer\Trainer.exe"
+$trainer = (Get-ChildItem (Join-Path $Root "trainer\*.exe") | Select-Object -First 1).FullName
+$trainerName = [System.IO.Path]::GetFileNameWithoutExtension($trainer)
+Write-Output "trainer: $trainer (process: $trainerName)"
 $crashLog = "$Root\trainer\crash.log"
 $results = @()
 
@@ -34,7 +36,7 @@ $gameDir2 = $GameDir
 if (-not (Get-Process game64 -ErrorAction SilentlyContinue)) {
     Start-Process (Join-Path $gameDir2 "game64.exe")
     Write-Output "game launched, waiting for ready..."
-    $tbc = "C:\Users\1\Desktop\CR\DXCXN\tools\TbcCli.exe"
+    $tbc = Join-Path $Root "tools\TbcCli.exe"
     $ready = $false
     for ($i = 0; $i -lt 240 -and -not $ready; $i++) {
         Start-Sleep -Milliseconds 500
@@ -48,7 +50,7 @@ if (-not (Get-Process game64 -ErrorAction SilentlyContinue)) {
 }
 
 # start trainer
-Get-Process Trainer -ErrorAction SilentlyContinue | ForEach-Object { $_.Kill() }
+Get-Process $trainerName -ErrorAction SilentlyContinue | ForEach-Object { $_.Kill() }
 Start-Sleep -Milliseconds 800
 $p = Start-Process $trainer -PassThru
 Start-Sleep -Seconds 6
@@ -112,9 +114,9 @@ Write-Test "顶栏导航(指令/控制台/维护/启动游戏)" (($navNames -con
 $lists = Get-Lists $win
 Write-Test "列表控件>=2" ($lists.Count -ge 2) "count=$($lists.Count)"
 $groupItems = $lists[0].FindAll([System.Windows.Automation.TreeScope]::Children, [System.Windows.Automation.Condition]::TrueCondition)
-Write-Test "分组15项" ($groupItems.Count -eq 15) "count=$($groupItems.Count)"
+Write-Test "分组14项" ($groupItems.Count -eq 14) "count=$($groupItems.Count)"
 $groupNames = @(); foreach ($g in $groupItems) { $groupNames += $g.Current.Name }
-$expGroups = @("等级经验","六维属性","魔法上限","物品","时间","状态异常","结婚","队伍","地图","技能","男主数据","后宫数值","性记录","战斗恢复","收集")
+$expGroups = @("等级经验","六维属性","技能/魔法","物品","时间","状态异常","结婚","队伍","地图","男主数据","后宫数值","性记录","战斗恢复","图鉴")
 $missing = $expGroups | Where-Object { $groupNames -notcontains $_ }
 Write-Test "分组名称完整" ($missing.Count -eq 0) "missing=$($missing -join ',')"
 
@@ -145,7 +147,7 @@ Write-Test "初始化流程(插件部署/连接日志)" $initOk ""
 if (Select-Item $lists[0] "物品") { Start-Sleep -Milliseconds 500 }
 $lists2 = Get-Lists $win
 $itemCmds = $lists2[1].FindAll([System.Windows.Automation.TreeScope]::Children, [System.Windows.Automation.Condition]::TrueCondition)
-Write-Test "物品组5指令(含金钱)" ($itemCmds.Count -eq 5) "count=$($itemCmds.Count)"
+Write-Test "物品组6指令(含金钱/修复)" ($itemCmds.Count -eq 6) "count=$($itemCmds.Count)"
 
 # 选中"发放物品(目标角色)" → 应生成表单
 $selected = Select-Item $lists2[1] "发放物品\(目标角色\)"

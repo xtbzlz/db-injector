@@ -1,11 +1,11 @@
-﻿# Build Trainer.exe (WPF, .NET Framework 4, code-only UI)
+﻿# Build DXCXN.exe (WPF, .NET Framework 4, code-only UI)
 # 单文件交付：tb_bridge.dll 插件内嵌为资源，运行时释放为游戏目录 plugin\tb_bridge.tpm
 param(
     [string]$Root = "C:\Users\1\Desktop\CR\DXCXN"  # 仓库根目录（可在其他机器覆盖）
 )
 $csc = "C:\WINDOWS\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 $src = "$Root\trainer\src"
-$out = "$Root\trainer\Trainer.exe"
+$out = "$Root\trainer\DXCXN.exe"
 $gac = "C:\WINDOWS\Microsoft.NET\assembly"
 $pluginRes = "$Root\bridge\bin\tb_bridge.dll"
 
@@ -38,4 +38,4 @@ $argList += "/resource:$pluginRes"
 $files = @("$src\PipeClient.cs", "$src\WikiItems.cs", "$src\CnItemMap.cs", "$src\CharaMap.cs", "$src\MagicMap.cs", "$src\AppConfig.cs", "$src\TrainerApp.cs")
 & $csc /nologo /target:winexe /optimize /out:$out @argList $files
 if ($LASTEXITCODE -ne 0) { throw "build failed" }
-Write-Output "OK: Trainer.exe $((Get-Item $out).Length) bytes (plugin embedded)"
+Write-Output "OK: DXCXN.exe $((Get-Item $out).Length) bytes (plugin embedded)"

@@ -122,10 +122,10 @@ namespace DzbTrainer
             MakeCmd("六维属性", "敏捷", "{chara}.speed = {num}", MakeParam("chara","角色","chara"), MakeParam("num","数值","num","99")),
             MakeCmd("六维属性", "运", "{chara}.luck = {num}", MakeParam("chara","角色","chara"), MakeParam("num","数值","num","99")),
             // ---- 魔法上限 ----
-            MakeCmd("魔法上限", "精灵魔法上限", "{chara}.mmagicMax = {arr9}", MakeParam("chara","角色","chara"), MakeParam("arr9","数值数组","arr9","[99,99,99,99,99,99,99,99,99]")),
-            MakeCmd("魔法上限", "神圣魔法上限", "{chara}.pmagicMax = {arr9}", MakeParam("chara","角色","chara"), MakeParam("arr9","数值数组","arr9","[99,99,99,99,99,99,99,99,99]")),
-            MakeCmd("魔法上限", "炼金魔法上限", "{chara}.amagicMax = {arr9}", MakeParam("chara","角色","chara"), MakeParam("arr9","数值数组","arr9","[99,99,99,99,99,99,99,99,99]")),
-            MakeCmd("魔法上限", "召唤魔法上限", "{chara}.smagicMax = {arr9}", MakeParam("chara","角色","chara"), MakeParam("arr9","数值数组","arr9","[99,99,99,99,99,99,99,99,99]")),
+            MakeCmd("技能/魔法", "精灵魔法上限", "{chara}.mmagicMax = {arr9}", MakeParam("chara","角色","chara"), MakeParam("arr9","数值数组","arr9","[99,99,99,99,99,99,99,99,99]")),
+            MakeCmd("技能/魔法", "神圣魔法上限", "{chara}.pmagicMax = {arr9}", MakeParam("chara","角色","chara"), MakeParam("arr9","数值数组","arr9","[99,99,99,99,99,99,99,99,99]")),
+            MakeCmd("技能/魔法", "炼金魔法上限", "{chara}.amagicMax = {arr9}", MakeParam("chara","角色","chara"), MakeParam("arr9","数值数组","arr9","[99,99,99,99,99,99,99,99,99]")),
+            MakeCmd("技能/魔法", "召唤魔法上限", "{chara}.smagicMax = {arr9}", MakeParam("chara","角色","chara"), MakeParam("arr9","数值数组","arr9","[99,99,99,99,99,99,99,99,99]")),
             // ---- 物品 ----
             MakeCmd("物品", "设置金钱(所持金)", "game.party.gold = {num}", MakeParam("num","金钱","num","999999")),
             MakeCmd("物品", "增加金钱(所持金)", "game.party.gold += {num}", MakeParam("num","金钱","num","100000")),
@@ -158,11 +158,11 @@ namespace DzbTrainer
             MakeCmd("地图", "当前区域地图开启", "game.map.showAllArea = true"),
             MakeCmd("地图", "遇怪概率(0不遇怪/1每步遇怪)", "(function(){ if(game.map.monsters.count == 0) return 'noMonsters'; game.map.battleRate = cap({num}, 1, 0); return 'ok'; })()", MakeParam("num","概率","num","0")),
             // ---- 技能 ----
-            MakeCmd("技能", "添加技能", "{chara}.skill.add({skill})",
+            MakeCmd("技能/魔法", "添加技能", "{chara}.skill.add({skill})",
                 MakeParam("chara","角色","chara"), MakeParam("skill","技能","skill","偵察")),
-            MakeCmd("技能", "删除技能", "{chara}.skill.remove({skill})",
+            MakeCmd("技能/魔法", "删除技能", "{chara}.skill.remove({skill})",
                 MakeParam("chara","角色","chara"), MakeParam("skill","技能","skill","擊倒")),
-            MakeCmd("技能", "学会魔法", "{chara}.learnSkill({magic})",
+            MakeCmd("技能/魔法", "学会魔法", "{chara}.learnSkill({magic})",
                 MakeParam("chara","角色","chara","2"), MakeParam("magic","魔法","magic","ファイア")),
             // ---- 男主 ----
             MakeCmd("男主数据", "性技巧", "game.chara[0].technic = {num}", MakeParam("num","数值","num","99")),
@@ -184,6 +184,10 @@ namespace DzbTrainer
             MakeCmd("后宫数值", "贞洁度", "{o}.moral = {num}", MakeParam("o","角色","o","サンドラ"), MakeParam("num","数值","num","100")),
             MakeCmd("后宫数值", "暴露度", "{o}.expose = {num}", MakeParam("o","角色","o","サンドラ"), MakeParam("num","数值","num","0")),
             MakeCmd("后宫数值", "敏感度", "{o}.feel = {num}", MakeParam("o","角色","o","サンドラ"), MakeParam("num","数值","num","10")),
+            MakeCmd("后宫数值", "兴奋度", "{o}.heat = {num}", MakeParam("o","角色","o","サンドラ"), MakeParam("num","数值","num","100", null, "0-200,180发烧/200极限")),
+            MakeCmd("战斗恢复", "疲劳值", "{o}.sleep = {num}", MakeParam("o","角色","o","リム"), MakeParam("num","数值","num","0", null, "0-100,100昏睡")),
+            MakeCmd("战斗恢复", "全员疲劳值清零", "(function(){ var n = 0; for(var i = 0; i < game.chara.count; i++){ var c = game.chara[i]; try{ if(c.sleep === void) continue; c.sleep = 0; n++; }catch(e){} } return n; })()"),
+            MakeCmd("后宫数值", "满腹值", "{o}.stomach = {num}", MakeParam("o","角色","o","リム"), MakeParam("num","数值","num","50", null, "0-100,0饥饿")),
             MakeCmd("后宫数值", "卖春数", "{o}.sellCount = {num}", MakeParam("o","角色","o","サンドラ"), MakeParam("num","数值","num","0")),
             MakeCmd("后宫数值", "出轨数", "{o}.affairCount = {num}", MakeParam("o","角色","o","サンドラ"), MakeParam("num","数值","num","0")),
             MakeCmd("后宫数值", "中出数", "{o}.pourCount = {num}", MakeParam("o","角色","o","サンドラ"), MakeParam("num","数值","num","0")),
@@ -226,18 +230,18 @@ namespace DzbTrainer
             // ---- 后宫数值 ----
             MakeCmd("后宫数值", "全员好感100", "(function(){ var n = 0; for(var i = 0; i < game.chara.count; i++){ var c = game.chara[i]; try{ if(c.love === void) continue; c.love.theo = 100; c.love.max = 100; c.love.linus = 100; c.love.blue = 100; c.love.alex = 100; n++; }catch(e){} } return n; })()"),
             // ---- 技能 ----
-            MakeCmd("技能", "一键学会全部魔法", "(function(){ var n = 0, i, j; var cats = [game.mmagic, game.pmagic, game.amagic, game.smagic]; for(j = 0; j < cats.count; j++){ for(i = 0; i < cats[j].count; i++){ try{ {chara}.learnSkill(cats[j][i]); n++; }catch(e){} } } return n; })()",
+            MakeCmd("技能/魔法", "一键学会全部魔法", "(function(){ var n = 0, i, j; var cats = [game.mmagic, game.pmagic, game.amagic, game.smagic]; for(j = 0; j < cats.count; j++){ for(i = 0; i < cats[j].count; i++){ try{ {chara}.learnSkill(cats[j][i]); n++; }catch(e){} } } return n; })()",
                 MakeParam("chara","角色","chara")),
-            MakeCmd("技能", "一键添加全部被动技能", "(function(){ var n = 0, i; for(i = 0; i < game.btcmd.count; i++){ var v = game.btcmd[i]; try{ if(v !== void && [\"passive\",\"cancel\",\"status\"].has(v.category)){ {chara}.learnSkill(v); n++; } }catch(e){} } return n; })()",
+            MakeCmd("技能/魔法", "一键添加全部被动技能", "(function(){ var n = 0, i; for(i = 0; i < game.btcmd.count; i++){ var v = game.btcmd[i]; try{ if(v !== void && [\"passive\",\"cancel\",\"status\"].has(v.category)){ {chara}.learnSkill(v); n++; } }catch(e){} } return n; })()",
                 MakeParam("chara","角色","chara")),
-            MakeCmd("技能", "修复全部损坏装备", "(function(){ var c = {chara}; var n = 0, i; for(i = 0; i < c.bag.count; i++){ if(c.bag[i] !== void && c.bagStat[i] == 6){ c.bagStat[i] = 12; n++; } } var pn = [\"main\",\"sub\",\"chest\",\"waist\",\"arm\",\"leg\",\"bust\",\"hip\",\"finger\",\"pocket\"]; for(i = 0; i < pn.count; i++){ if(c.equipStat[pn[i]] == 6){ c.equipStat[pn[i]] = 12; n++; } } return n; })()",
+            MakeCmd("物品", "修复全部损坏装备", "(function(){ var c = {chara}; var n = 0, i; for(i = 0; i < c.bag.count; i++){ if(c.bag[i] !== void && c.bagStat[i] == 6){ c.bagStat[i] = 12; n++; } } var pn = [\"main\",\"sub\",\"chest\",\"waist\",\"arm\",\"leg\",\"bust\",\"hip\",\"finger\",\"pocket\"]; for(i = 0; i < pn.count; i++){ if(c.equipStat[pn[i]] == 6){ c.equipStat[pn[i]] = 12; n++; } } return n; })()",
                 MakeParam("chara","角色","chara")),
             // ---- 收集 ----
-            MakeCmd("收集", "全物品图鉴解锁", "(function(){ var n = game.items.count; for(var i = 0; i < n; i++){ try{ sf[game.items[i].name] = true; }catch(e){} } return n; })()"),
-            MakeCmd("收集", "全怪物图鉴解锁", "(function(){ var n = 0; for(var i = 0; i < game.monster.count; i++){ try{ sf[game.monster[i].name] = true; n++; }catch(e){} } return n; })()"),
-            MakeCmd("收集", "全奖杯达成", "(function(){ sf.gameCleared = true; sf.clearWithoutHyperBombs = true; sf.walkCount = 50000; sf.gotMaxGold = true; sf.mostLevelOfCharas = 100; sf.numContractedHirings = game.hiring.count; sf.numContractedMonsters = game.smagic.count; sf.completedStarCards = true; sf.numLearnedMagics = game.mmagic.count * 3 + game.smagic.count; sf.rateOfCoveringMaps = 100; sf.numClearedQuests = game.quests.count; sf.numEatenDishes = 30; sf.winCount = 1000; sf.totalMarks = 10000; sf.huntedThreeLordsWithoutHyperBombs = true; sf.huntedEarthDragonWithoutHyperBombs = true; sf.clearAllQuestsWithoutHyperBombs = true; sf.usedJobsByCreating = []; for(var i = 0; i < game.job.count; i++) sf.usedJobsByCreating.add(game.job[i].name); for(var j = 0; j < game.items.count; j++){ try{ sf[game.items[j].name] = true; }catch(e){} } for(var k2 = 0; k2 < game.monster.count; k2++){ try{ sf[game.monster[k2].name] = true; }catch(e){} } return 'trophies ok'; })()"),
-            MakeCmd("收集", "一键完成全部已接任务", "(function(){ var n = 0; for(var i = 0; i < game.quests.count; i++){ var q = game.quests[i]; if(q.accepted && ! q.completed){ q.complete(false); n++; } } return n; })()"),
-            MakeCmd("收集", "开启游戏内调试功能", "(function(){ try{ Debug.console.visible = true; }catch(e){} global.underDevelopment = true; return 'dev on'; })()"),
+            MakeCmd("图鉴", "全物品图鉴解锁", "(function(){ var n = game.items.count; for(var i = 0; i < n; i++){ try{ sf[game.items[i].name] = true; }catch(e){} } return n; })()"),
+            MakeCmd("图鉴", "全怪物图鉴解锁", "(function(){ var n = 0; for(var i = 0; i < game.monster.count; i++){ try{ sf[game.monster[i].name] = true; n++; }catch(e){} } return n; })()"),
+            MakeCmd("图鉴", "全奖杯达成", "(function(){ sf.gameCleared = true; sf.clearWithoutHyperBombs = true; sf.walkCount = 50000; sf.gotMaxGold = true; sf.mostLevelOfCharas = 100; sf.numContractedHirings = game.hiring.count; sf.numContractedMonsters = game.smagic.count; sf.completedStarCards = true; sf.numLearnedMagics = game.mmagic.count * 3 + game.smagic.count; sf.rateOfCoveringMaps = 100; sf.numClearedQuests = game.quests.count; sf.numEatenDishes = 30; sf.winCount = 1000; sf.totalMarks = 10000; sf.huntedThreeLordsWithoutHyperBombs = true; sf.huntedEarthDragonWithoutHyperBombs = true; sf.clearAllQuestsWithoutHyperBombs = true; sf.usedJobsByCreating = []; for(var i = 0; i < game.job.count; i++) sf.usedJobsByCreating.add(game.job[i].name); for(var j = 0; j < game.items.count; j++){ try{ sf[game.items[j].name] = true; }catch(e){} } for(var k2 = 0; k2 < game.monster.count; k2++){ try{ sf[game.monster[k2].name] = true; }catch(e){} } return 'trophies ok'; })()"),
+            MakeCmd("图鉴", "一键完成全部已接任务", "(function(){ var n = 0; for(var i = 0; i < game.quests.count; i++){ var q = game.quests[i]; if(q.accepted && ! q.completed){ q.complete(false); n++; } } return n; })()"),
+            MakeCmd("图鉴", "开启游戏内调试功能", "(function(){ try{ Debug.console.visible = true; }catch(e){} global.underDevelopment = true; return 'dev on'; })()"),
         };
 
         static CmdDef MakeCmd(string group, string name, string template, params ParamSpec[] ps)
@@ -323,8 +327,8 @@ namespace DzbTrainer
 
         public MainWindow()
         {
-            Title = "D&B 修改器 - ダンジョン＆ブライド";
-            Width = 1220; Height = 700; MinWidth = 1020; MinHeight = 560;
+            Title = "D&B 指令注入器 - ダンジョン＆ブライド";
+            Width = 960; Height = 700; MinWidth = 800; MinHeight = 560;
             BuildUi();
             ShowPage("指令");
             statusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
@@ -647,7 +651,7 @@ namespace DzbTrainer
             top.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(240) });
             top.ColumnDefinitions.Add(new ColumnDefinition());
             top.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(320) });
-            var title = new TextBlock { Text = "D&B 修改器 - 指令拼接", Foreground = TextMain, FontSize = 15, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 0, 0), FontWeight = FontWeights.Bold, TextTrimming = TextTrimming.CharacterEllipsis };
+            var title = new TextBlock { Text = "D&B 指令注入器", Foreground = TextMain, FontSize = 15, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 0, 0), FontWeight = FontWeights.Bold, TextTrimming = TextTrimming.CharacterEllipsis };
             top.Children.Add(title);
             var nav = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
             AddNav(nav, "指令");
@@ -1122,8 +1126,8 @@ namespace DzbTrainer
         FrameworkElement BuildCmdPage()
         {
             var grid = new Grid();
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(170) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(250) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(130) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(180) });
             grid.ColumnDefinitions.Add(new ColumnDefinition());
             grid.RowDefinitions.Add(new RowDefinition()); // 默认 Height=*，使 grid 撑满整页高
 
@@ -1606,7 +1610,7 @@ namespace DzbTrainer
             c1.Children.Add(Lbl("TJS 表达式控制台（与 MTool krkrConsole 同级）", false, 14));
             c1.Children.Add(Lbl("提示：表达式模式不支持 for/if 顶层语句，可用 (function(){...})() 匿名函数包裹；多命令用逗号表达式。", true, 11));
             var row = new WrapPanel { Margin = new Thickness(0, 6, 0, 0) };
-            consoleInput = MakeInput("", 640);
+            consoleInput = MakeInput("", 560);
             consoleInput.Height = 30;
             consoleInput.VerticalAlignment = VerticalAlignment.Center;
             consoleInput.KeyDown += (s, e) => { if (e.Key == System.Windows.Input.Key.Enter) RunConsole(); };
@@ -1714,7 +1718,7 @@ namespace DzbTrainer
             right.Children.Add(c3);
             var c4 = Card();
             c4.Children.Add(Lbl("注意事项", true, 12));
-            var noteLbl = Lbl("· 修改器与游戏必须同为运行状态；游戏重启后 Trainer 自动重连\n· 建议修改前先存档；修改均为运行时内存，读档可恢复\n· 杀软如拦截 tb_bridge.tpm / Trainer.exe，请加入白名单\n· 清空背包为数据层重置，游戏内重新打开背包即刷新\n· 次要人物装备状态：24完好 / 12损坏 / 0裸 / 96裸衣 / 97毛巾 / 98大毛巾 / 99泳装 / 100漂浮\n· 怀孕阶段：-20未孕 / 0-9怀孕 / 10-24大肚 / 25+产后哺乳", true, 12);
+            var noteLbl = Lbl("· 修改器与游戏必须同为运行状态；游戏重启后自动重连\n· 建议修改前先存档；修改均为运行时内存，读档可恢复\n· 杀软如拦截本程序或 tb_bridge.tpm，请加入白名单\n· 清空背包为数据层重置，游戏内重新打开背包即刷新\n· 次要人物装备状态：24完好 / 12损坏 / 0裸 / 96裸衣 / 97毛巾 / 98大毛巾 / 99泳装 / 100漂浮\n· 怀孕阶段：-20未孕 / 0-9怀孕 / 10-24大肚 / 25+产后哺乳", true, 12);
             noteLbl.TextWrapping = TextWrapping.Wrap;
             c4.Children.Add(noteLbl);
             Grid.SetRow(c4, 1);
