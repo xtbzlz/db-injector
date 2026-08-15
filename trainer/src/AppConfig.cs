@@ -11,7 +11,7 @@ namespace DzbTrainer
     {
         public string GameDir = "";
         public bool Debug = false;
-        public bool AutoLaunchGame = true;
+        public bool AutoLaunchGame = false;
 
         public static string ConfigDir
         {

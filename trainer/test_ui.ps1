@@ -18,7 +18,7 @@ $results = @()
 $cfgDir = Join-Path $env:APPDATA "DzbTrainer"
 New-Item -ItemType Directory -Force -Path $cfgDir | Out-Null
 [System.IO.File]::WriteAllText((Join-Path $cfgDir "config.json"),
-    "{`"gameDir`":`"$GameDir`",`"debug`":false,`"autoLaunchGame`":true}",
+    "{`"gameDir`":`"$GameDir`",`"debug`":false,`"autoLaunchGame`":false}",
     [System.Text.Encoding]::UTF8)
 Write-Output "pre-seeded config: $cfgDir\config.json"
 

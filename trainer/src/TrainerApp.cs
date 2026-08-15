@@ -920,36 +920,44 @@ namespace DzbTrainer
                 string target = Path.Combine(pluginDir, "tb_bridge.tpm");
                 DeployPlugin(target);
 
-                // 2. 自动启动游戏（如未运行）
-                if (config.AutoLaunchGame && Process.GetProcessesByName("game64").Length == 0
-                    && Process.GetProcessesByName("game").Length == 0)
+                // 2. 启动游戏（仅当开启自动启动且未运行）
+                bool gameRunning = Process.GetProcessesByName("game64").Length > 0 || Process.GetProcessesByName("game").Length > 0;
+                if (config.AutoLaunchGame && !gameRunning)
                 {
                     Log("启动游戏…");
                     Process.Start(exe);
                 }
 
                 // 3. 等待引擎就绪（最长 180s，游戏冷启动与插件加载可能较慢）
-                Log("等待游戏连接…");
-                for (int i = 0; i < InitTimeoutSec; i++)
+                //    游戏未运行且未自动启动时跳过等待，用户点「启动游戏」或手动启动后由 RefreshStatus 自动补连
+                if (gameRunning || config.AutoLaunchGame)
                 {
-                    if (pipe.Ping() == "PONG" && EngineReady())
+                    Log("等待游戏连接…");
+                    for (int i = 0; i < InitTimeoutSec; i++)
                     {
-                        Log("连接成功");
-                        RefreshStatus();
-                        RefreshStatusInfo();
-                        Dispatcher.BeginInvoke(new Action(() =>
+                        if (pipe.Ping() == "PONG" && EngineReady())
                         {
-                            statusText.Text = "已连接";
-                            statusDot.Foreground = OkGreen;
-                        }));
-                        // 引擎就绪后再加载注册表（PING 就绪 ≠ 引擎就绪，冷启动过早 LIST 会 "global 'o' not found"）
-                        try { LoadRegistry(); Log("注册表已加载(初始化)"); }
-                        catch (Exception lr) { Log("注册表加载失败: " + lr.Message); }
-                        return;
+                            Log("连接成功");
+                            RefreshStatus();
+                            RefreshStatusInfo();
+                            Dispatcher.BeginInvoke(new Action(() =>
+                            {
+                                statusText.Text = "已连接";
+                                statusDot.Foreground = OkGreen;
+                            }));
+                            // 引擎就绪后再加载注册表（PING 就绪 ≠ 引擎就绪，冷启动过早 LIST 会 "global 'o' not found"）
+                            try { LoadRegistry(); Log("注册表已加载(初始化)"); }
+                            catch (Exception lr) { Log("注册表加载失败: " + lr.Message); }
+                            return;
+                        }
+                        Thread.Sleep(1000);
                     }
-                    Thread.Sleep(1000);
+                    Log("连接超时：请确认游戏已启动且插件已加载（重启游戏可重新加载插件）");
                 }
-                Log("连接超时：请确认游戏已启动且插件已加载（重启游戏可重新加载插件）");
+                else
+                {
+                    Log("游戏未运行：点顶部「启动游戏」或手动启动游戏后自动连接");
+                }
             }
             catch (Exception ex) { Log("初始化失败: " + ex.Message); }
         }
