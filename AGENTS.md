@@ -1,11 +1,11 @@
-# AGENTS.md — D&B Trainer 项目记忆
+# AGENTS.md — DXCXN 项目记忆（D&B 指令注入器）
 
 ダンジョン＆ブライド 内存修改器：经 krkr 控制台（TJS 表达式）修改游戏内存对象，逐条经游戏源码核实，避免非法值导致游戏报错退出或拼接错误。
 
 ## 架构
 
-- **仓库**：`C:\Users\1\Desktop\CR\DXCXN`；**游戏目录**：`C:\Users\1\Desktop\CR\ダンジョン＆ブライド`。
-- **通信**：命名管道 `\\.\pipe\tbc_bridge`。插件 `tb_bridge.tpm`（= `bridge\bin\tb_bridge.dll`，krkrz 官方 V2Link 插件机制）由 Trainer 部署到游戏 `plugin\` 目录，游戏主线程内执行 TJS 并返回结果。与 MTool krkrConsole 同级。
+- **仓库**：本仓库根目录；**游戏目录**：game64.exe 所在目录（需在引导向导中选择）。
+- **通信**：命名管道 `\\.\pipe\tbc_bridge`。插件 `tb_bridge.tpm`（= `bridge\bin\tb_bridge.dll`，krkrz 官方 V2Link 插件机制）由 DXCXN 部署到游戏 `plugin\` 目录，游戏主线程内执行 TJS 并返回结果。与 MTool krkrConsole 同级。
 - **执行通道**：`TVPExecuteExpression` 执行任意 TJS **单表达式**；多语句用 `(function(){ ... })()` 匿名函数包裹（不支持顶层 for/if）。
 - **双语下拉**：插件 `LIST` 命令用 C++ `EnumMembers` 枚举注册表 `o`（1447 项：键=日文标识符，name=汉化运行时名，id=物品ID）。
 - **全局对象**：`game`=GameMaster；`o`=全局注册表；`sf`=跨存档系统标志（存 datasu.ksd，收集组写它）；`o.<角色>` 是 CharaReference（对活体实例透明代理）。
@@ -15,21 +15,21 @@
 
 - **PING 就绪 ≠ 引擎就绪**：插件管道线程在 V2Link 时就绪（PING 立即回 PONG），但 LIST/EVAL 需游戏脚本初始化完成（`o` 注册表、`game` 对象存在）。冷启动过早 LIST 会报 `global 'o' not found`，且游戏启动期会 V2Link/V2Unlink 自重启、管道瞬断。
 - **就绪标志**：`game.items.count > 0`（与 test_ui.ps1 / `RefreshStatusInfo` 一致）。`TrainerApp.cs` 里 `EngineReady()` 以此判定；`InitGameFlow` 等 `PING && EngineReady()` 才加载注册表，`RefreshStatus` 对"已连接但注册表为空"做 5s 节流自动补载。
-- **调试首选**：游戏目录 `tbc_bridge.log`（插件写入每个 PING/LIST/EVAL 及错误原文），冷启动/连接问题先看它，再配合 `%APPDATA%\DzbTrainer\debug.log`（Trainer 调试日志，需 config.debug=true）。
+- **调试首选**：游戏目录 `tbc_bridge.log`（插件写入每个 PING/LIST/EVAL 及错误原文），冷启动/连接问题先看它，再配合 `%APPDATA%\DzbTrainer\debug.log`（DXCXN 调试日志，需 config.debug=true）。
 
 ## 构建 / 测试（顺序重要）
 
 ```bash
-# 1) 桥接 DLL（zig cc，先于 Trainer，否则报 "run bridge/build.ps1 first"）
+# 1) 桥接 DLL（zig cc，先于 DXCXN，否则报 "run bridge/build.ps1 first"）
 powershell -ExecutionPolicy Bypass -File bridge/build.ps1
-# 2) Trainer.exe（.NET Framework 4 的 csc.exe 编译 7 个 .cs，代码构建 WPF UI，内嵌 tb_bridge.dll 为资源）
-powershell -ExecutionPolicy Bypass -File trainer/build.ps1   # 输出 OK: Trainer.exe <bytes> bytes (plugin embedded)
+# 2) DXCXN.exe（.NET Framework 4 的 csc.exe 编译 7 个 .cs，代码构建 WPF UI，内嵌 tb_bridge.dll 为资源）
+powershell -ExecutionPolicy Bypass -File trainer/build.ps1   # 输出 OK: DXCXN.exe <bytes> bytes (plugin embedded)
 # 3) 回归（UIAutomation 驱动 UI，自启游戏；17 个断言）
 cd trainer && powershell -ExecutionPolicy Bypass -File test_ui.ps1 2>&1 | iconv -f GBK -t UTF-8 | grep -E "FAIL|汇总"   # 期望 === 汇总: 17/17 通过 ===
 ```
 
 - **真机验证**：`tools\TbcCli.exe "<tjs表达式>"`，需游戏在运行（未连接报 `cannot open pipe (err 2)`）。
-- **重启游戏**：`C:\Users\1\AppData\Local\Temp\opencode\restart_game_bom.ps1`，等 `game.chara.count` 返回数值即就绪。
+- **重启游戏**：`%TEMP%\opencode\restart_game_bom.ps1`（本地开发辅助脚本），等 `game.chara.count` 返回数值即就绪。
 
 ## 编码 / 换行坑
 
@@ -73,6 +73,6 @@ token 常量在 `TrainerApp.cs`（BgMain=#333333 / Accent=#785E5E / TextMain=#ED
 
 - **提交**：中文消息，前缀 `fix:/feat:/refactor:/docs:/style:/audit:/chore:`，分原子提交，每批构建+17/17 回归后再提交。**不主动 commit/push**（除非明确要求）。
 - **配置**：`%APPDATA%\DzbTrainer\config.json`（gameDir/debug/autoLaunchGame），删除即重新引导。
-- **存档安全**：修改均为运行时内存/对象修改，读档恢复；「收集」组写 `sf` 跨存档持久，全奖杯会开二周目。
+- **存档安全**：修改均为运行时内存/对象修改，读档恢复；「图鉴」组写 `sf` 跨存档持久，全奖杯会开二周目。
 - **残留**：`.omo/`（旧 drafts/evidence）长期未处理，`git status` 注意；`ref/`、`shots*/` 已 gitignore。
-- 权威源码参考在 `C:\Users\1\AppData\Local\Temp\opencode\p66_*.txt`（patch66 UTF-8 转换）与游戏 `unpacked\patch\`。
+- 权威源码参考在 `%TEMP%\opencode\p66_*.txt`（patch66 UTF-8 转换）与游戏 `unpacked\patch\`。
